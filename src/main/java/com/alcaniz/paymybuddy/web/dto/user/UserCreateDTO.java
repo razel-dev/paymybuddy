@@ -1,4 +1,4 @@
-package com.alcaniz.paymybuddy.web.dto;
+package com.alcaniz.paymybuddy.web.dto.user;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
