@@ -32,4 +32,9 @@ public class UserConnection {
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private Instant createdAt;
+
+    // Fabrique
+    public static UserConnection empty() {
+        return new UserConnection();
+    }
 }
