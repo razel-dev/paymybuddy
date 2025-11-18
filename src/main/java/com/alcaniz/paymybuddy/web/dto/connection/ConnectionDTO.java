@@ -1,4 +1,4 @@
-package com.alcaniz.paymybuddy.web.dto;
+package com.alcaniz.paymybuddy.web.dto.connection;
 
 import java.time.Instant;
 
