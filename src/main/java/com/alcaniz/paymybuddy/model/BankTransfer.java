@@ -42,4 +42,9 @@ public class BankTransfer {
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private Instant createdAt;
+
+    // Fabrique
+    public static BankTransfer empty() {
+        return new BankTransfer();
+    }
 }
