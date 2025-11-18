@@ -36,7 +36,7 @@ public class Account {
     @Column(name = "account_name", nullable = false, length = 100)
     private String accountName;
 
-    @Column(name = "currency", nullable = false, length = 3)
+    @Column(name = "currency", nullable = false, length = 3, columnDefinition = "char(3)")
     private String currency;
 
     @Column(name = "balance", nullable = false, precision = 10, scale = 2)
@@ -45,5 +45,13 @@ public class Account {
     @Column(name = "created_at", insertable = false, updatable = false)
     private Instant createdAt;
     
-
+    // Fabriques
+    public static Account empty() {
+        return new Account();
+    }
+    public static Account ref(Integer id) {
+        Account a = new Account();
+        a.setId(id);
+        return a;
+    }
 }
