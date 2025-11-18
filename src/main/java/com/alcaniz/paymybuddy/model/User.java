@@ -14,14 +14,11 @@ import java.time.Instant;
 @Getter
 @Setter
 @Entity //classe persistable mappée sur une table.
-@NoArgsConstructor(access = AccessLevel.PROTECTED) // Constructeur requis par JPA; "protected" évite une instanciation involontaire côté application.
-
-@ToString(exclude = "password") // Évite toute fuite du mot de passe dans les logs.
-@EqualsAndHashCode(onlyExplicitlyIncluded = true) // Ne prend en compte que les champs annotés @Include (ici: id) pour equals/hashCode.
-// L'égalité uniquement sur l'id afin d'éviter des effets de bord en persistance.
-@Table(name = "users") // Nom explicite de la table. Associe l’entité à la table users.
-
-        public class User {
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@ToString(exclude = "password")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@Table(name = "users")
+public class User {
 
     @Builder(toBuilder = true)
     private User(@NonNull String username, @NonNull String email, @NonNull String password) {
@@ -52,4 +49,14 @@ import java.time.Instant;
     // "insertable=false, updatable=false" indique à JPA/Hibernate de ne pas gérer ce champ en écriture.
 
     private Instant createdAt;
+
+    // Fabriques pour MapStruct (permettent d'utiliser malgré protected)
+    public static User empty() {
+        return new User();
+    }
+    public static User ref(Integer id) {
+        User u = new User();
+        u.setId(id);
+        return u;
+    }
 }
