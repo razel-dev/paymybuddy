@@ -1,4 +1,4 @@
-package com.alcaniz.paymybuddy.web.dto;
+package com.alcaniz.paymybuddy.web.dto.transaction;
 
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMin;

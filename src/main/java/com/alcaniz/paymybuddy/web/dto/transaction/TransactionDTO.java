@@ -1,4 +1,4 @@
-package com.alcaniz.paymybuddy.web.dto;
+package com.alcaniz.paymybuddy.web.dto.transaction;
 
 import java.math.BigDecimal;
 import java.time.Instant;
