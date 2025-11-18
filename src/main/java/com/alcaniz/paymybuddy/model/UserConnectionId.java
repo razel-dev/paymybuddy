@@ -23,4 +23,9 @@ public class UserConnectionId implements Serializable {
 
     @Column(name = "related_user_id", nullable = false)
     private Integer relatedUserId;
+
+    // Fabrique
+    public static UserConnectionId empty() {
+        return new UserConnectionId();
+    }
 }
