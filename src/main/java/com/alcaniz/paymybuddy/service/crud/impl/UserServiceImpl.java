@@ -75,7 +75,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+
     public Optional<User> getById(Integer id) {
         log.debug("Appel de getById(id={})", id);
         if (id == null) {
@@ -88,7 +88,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+
     public Optional<User> getByEmail(String email) {
         log.debug("Appel de getByEmail(email={})", email);
         if (!StringUtils.hasText(email)) {

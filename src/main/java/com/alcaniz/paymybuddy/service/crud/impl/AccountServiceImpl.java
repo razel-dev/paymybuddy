@@ -28,6 +28,7 @@ public class AccountServiceImpl implements UserService.AccountService {
     private final UserRepository userRepository;
     private final AccountMapper accountMapper;
 
+    @Transactional(readOnly = true)
     @Override
     public Account create(AccountCreateDTO dto) {
         log.debug("Appel de AccountService.create()");
@@ -68,7 +69,7 @@ public class AccountServiceImpl implements UserService.AccountService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+
     public Optional<Account> getById(Integer id) {
         log.debug("Appel de AccountService.getById(id={})", id);
         if (id == null) {
@@ -79,7 +80,7 @@ public class AccountServiceImpl implements UserService.AccountService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+
     public List<Account> getAllForUser(Integer userId) {
         log.debug("Appel de AccountService.getAllForUser(userId={})", userId);
         if (userId == null) {

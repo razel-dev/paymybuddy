@@ -34,6 +34,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final AccountRepository accountRepository;
     private final TransactionMapper transactionMapper;
 
+    @Transactional(readOnly = true)
     @Override
     public Transaction create(TransactionCreateDTO dto) {
         log.debug("Appel de TransactionService.create()");
@@ -102,7 +103,7 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+
     public List<Transaction> getHistoryForAccount(Integer accountId) {
         log.debug("Appel de getHistoryForAccount(accountId={})", accountId);
         if (accountId == null) {
@@ -115,7 +116,7 @@ public class TransactionServiceImpl implements TransactionService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+
     public Optional<Transaction> getById(Integer id) {
         log.debug("Appel de getById(id={})", id);
         if (id == null) return Optional.empty();

@@ -29,6 +29,7 @@ public class BankTransferServiceImpl implements TransactionService.BankTransferS
     private final AccountRepository accountRepository;
     private final BankTransferMapper bankTransferMapper;
 
+    @Transactional(readOnly = true)
     @Override
     public BankTransfer create(BankTransferCreateDTO dto) {
         log.debug("Appel de BankTransferService.create()");
@@ -79,7 +80,7 @@ public class BankTransferServiceImpl implements TransactionService.BankTransferS
     }
 
     @Override
-    @Transactional(readOnly = true)
+
     public List<BankTransfer> getHistoryForAccount(Integer accountId) {
         log.debug("Appel de getHistoryForAccount(accountId={})", accountId);
         if (accountId == null) {
@@ -90,7 +91,7 @@ public class BankTransferServiceImpl implements TransactionService.BankTransferS
     }
 
     @Override
-    @Transactional(readOnly = true)
+
     public Optional<BankTransfer> getById(Integer id) {
         log.debug("Appel de getById(id={})", id);
         if (id == null) return Optional.empty();

@@ -67,7 +67,7 @@ public class ConnectionServiceImpl implements ConnectionService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+
     public List<UserConnection> getAllForOwner(Integer ownerUserId) {
         log.debug("Appel de getAllForOwner(ownerUserId={})", ownerUserId);
         if (ownerUserId == null) {

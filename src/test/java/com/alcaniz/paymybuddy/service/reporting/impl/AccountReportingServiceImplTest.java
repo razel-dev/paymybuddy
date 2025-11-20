@@ -3,7 +3,6 @@ package com.alcaniz.paymybuddy.service.reporting.impl;
 import com.alcaniz.paymybuddy.model.Account;
 import com.alcaniz.paymybuddy.repository.AccountRepository;
 import com.alcaniz.paymybuddy.repository.TransactionRepository;
-import com.alcaniz.paymybuddy.web.dto.reporting.AccountReportDTO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -14,7 +13,6 @@ import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
