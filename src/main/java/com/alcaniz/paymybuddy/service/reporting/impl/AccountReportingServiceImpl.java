@@ -1,7 +1,6 @@
 package com.alcaniz.paymybuddy.service.reporting.impl;
 
 import com.alcaniz.paymybuddy.model.Account;
-import com.alcaniz.paymybuddy.model.Transaction;
 import com.alcaniz.paymybuddy.repository.AccountRepository;
 import com.alcaniz.paymybuddy.repository.TransactionRepository;
 import com.alcaniz.paymybuddy.service.reporting.AccountReportingService;
@@ -14,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.List;
+
 
 @Service
 @Transactional(readOnly = true)
