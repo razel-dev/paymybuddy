@@ -17,15 +17,16 @@ public interface AccountMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "balance", ignore = true)     // défaut DB = 0.00
     @Mapping(target = "createdAt", ignore = true)   // valeur générée DB
-    @Mapping(target = "user", source = "userId")
+    @Mapping(target = "user", source = "userId", qualifiedByName = "idToUser")
     Account toEntity(AccountCreateDTO dto);
 
-    @ObjectFactory
-    default Account newAccount(AccountCreateDTO dto) {
-        return Account.empty();
-    }
-
-    default User mapIdToUser(Integer id) {
-        return id == null ? null : User.ref(id);
+    @Named("idToUser")
+    default User idToUser(Integer id) {
+        if (id == null) {
+            return null;
+        }
+        User u = new User();
+        u.setId(id);
+        return u;
     }
 }

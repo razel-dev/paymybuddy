@@ -2,7 +2,7 @@ package com.alcaniz.paymybuddy.web.mapper;
 
 import com.alcaniz.paymybuddy.model.User;
 import com.alcaniz.paymybuddy.model.UserConnection;
-import com.alcaniz.paymybuddy.model.UserConnectionId;
+
 import com.alcaniz.paymybuddy.web.dto.connection.UserConnectionDTO;
 import org.mapstruct.*;
 
@@ -23,20 +23,15 @@ public interface UserConnectionMapper {
     @Mapping(target = "related", source = "relatedUserId", qualifiedByName = "idToUser")
     UserConnection toEntity(UserConnectionDTO dto);
 
-    // Factory EmbeddedId (évite d'appeler un ctor potentiellement protégé)
-    @ObjectFactory
-    default UserConnectionId newUserConnectionId(UserConnectionDTO dto) {
-        return UserConnectionId.empty();
-    }
-    // Factory entité (évite new UserConnection() si ctor protégé)
-    @ObjectFactory
-    default UserConnection newUserConnection(@TargetType Class<UserConnection> type) {
-        return UserConnection.empty();
+
+    @Named("idToUser")
+    default User idToUser(Integer id) {
+        if (id == null) {
+            return null;
+        }
+        User u = new User();
+        u.setId(id);
+        return u;
     }
 
-    // Conversion Integer -> User sans new User() côté mapper
-    @Named("idToUser")
-    default User mapIdToUser(Integer id) {
-        return id == null ? null : User.ref(id);
-    }
 }

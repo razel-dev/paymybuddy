@@ -18,16 +18,8 @@ public interface TransactionMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "fee", ignore = true) // calcul métier côté service
-    @Mapping(target = "senderAccount", source = "senderAccountId")
-    @Mapping(target = "receiverAccount", source = "receiverAccountId")
+    @Mapping(target = "senderAccount.id", source = "senderAccountId")
+    @Mapping(target = "receiverAccount.id", source = "receiverAccountId")
     Transaction toEntity(TransactionCreateDTO dto);
 
-    @ObjectFactory
-    default Transaction newTransaction(TransactionCreateDTO dto) {
-        return Transaction.empty();
-    }
-
-    default Account mapIdToAccount(Integer id) {
-        return id == null ? null : Account.ref(id);
-    }
 }

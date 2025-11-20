@@ -9,7 +9,7 @@ import java.time.Instant;
 @Getter
 @Setter
 @Entity
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Table(name = "transactions")
@@ -51,8 +51,5 @@ private Transaction(@NonNull Account senderAccount, @NonNull Account receiverAcc
     @Column(name = "created_at", insertable = false, updatable = false)
     private Instant createdAt;
 
-    // Fabrique
-    public static Transaction empty() {
-        return new Transaction();
-    }
+
 }

@@ -14,7 +14,7 @@ import java.time.Instant;
 @Getter
 @Setter
 @Entity //classe persistable mappée sur une table.
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 @ToString(exclude = "password")
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Table(name = "users")
@@ -50,13 +50,4 @@ public class User {
 
     private Instant createdAt;
 
-    // Fabriques pour MapStruct (permettent d'utiliser malgré protected)
-    public static User empty() {
-        return new User();
-    }
-    public static User ref(Integer id) {
-        User u = new User();
-        u.setId(id);
-        return u;
-    }
 }

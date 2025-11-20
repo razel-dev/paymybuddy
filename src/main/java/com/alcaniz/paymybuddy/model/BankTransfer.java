@@ -9,7 +9,7 @@ import java.time.Instant;
 @Getter
 @Setter
 @Entity
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Table(name = "bank_transfers")
@@ -43,8 +43,5 @@ public class BankTransfer {
     @Column(name = "created_at", insertable = false, updatable = false)
     private Instant createdAt;
 
-    // Fabrique
-    public static BankTransfer empty() {
-        return new BankTransfer();
-    }
+
 }

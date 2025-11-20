@@ -18,8 +18,4 @@ public interface UserMapper {
     @Mapping(target = "createdAt", ignore = true) // généré DB
     User toEntity(UserCreateDTO dto);
 
-    @ObjectFactory
-    default User newUser(UserCreateDTO dto) {
-        return User.empty();
-    }
 }

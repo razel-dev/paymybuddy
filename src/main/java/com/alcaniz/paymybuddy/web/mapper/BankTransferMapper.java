@@ -16,15 +16,16 @@ public interface BankTransferMapper {
     // CreateDTO -> Entity
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "account", source = "accountId")
+    @Mapping(target = "account", source = "accountId", qualifiedByName = "idToAccount")
     BankTransfer toEntity(BankTransferCreateDTO dto);
 
-    @ObjectFactory
-    default BankTransfer newBankTransfer(BankTransferCreateDTO dto) {
-        return BankTransfer.empty();
-    }
-
-    default Account mapIdToAccount(Integer id) {
-        return id == null ? null : Account.ref(id);
+    @Named("idToAccount")
+    default Account idToAccount(Integer id) {
+        if (id == null) {
+            return null;
+        }
+        Account a = new Account();
+        a.setId(id);
+        return a;
     }
 }

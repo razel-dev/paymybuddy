@@ -10,7 +10,7 @@ import java.time.Instant;
 @Getter
 @Setter
 @Entity
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Table(name = "accounts")
 public class Account {
@@ -45,13 +45,5 @@ public class Account {
     @Column(name = "created_at", insertable = false, updatable = false)
     private Instant createdAt;
     
-    // Fabriques
-    public static Account empty() {
-        return new Account();
-    }
-    public static Account ref(Integer id) {
-        Account a = new Account();
-        a.setId(id);
-        return a;
-    }
+
 }

@@ -8,7 +8,7 @@ import java.time.Instant;
 @Getter
 @Setter
 @Entity
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Table(name = "user_connections")
@@ -33,8 +33,5 @@ public class UserConnection {
     @Column(name = "created_at", insertable = false, updatable = false)
     private Instant createdAt;
 
-    // Fabrique
-    public static UserConnection empty() {
-        return new UserConnection();
-    }
+
 }
