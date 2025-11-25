@@ -10,9 +10,7 @@ import java.util.List;
 @Repository
 public interface AccountRepository extends JpaRepository<Account, Integer> {
 
-    // Comptes d’un utilisateur
-    // Avec Spring Data JPA, les noms de méthodes font référence aux propriétés
-    // Java des entités, pas aux colonnes SQL avec le "_"
+
     List<Account> findAllByUser_Id(Integer userId);
 
 }
