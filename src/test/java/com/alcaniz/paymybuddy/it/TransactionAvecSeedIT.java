@@ -29,6 +29,7 @@ class TransactionAvecSeedIT {
     @Autowired
     private TransactionService transactionService;
 
+    // test similaire qu'avec seed mais le but et de verifier la santé des migrations
     @Test
     void transfert_depuis_seed_met_a_jour_les_soldes() {
         // 1) Arrange: récupérer les comptes
