@@ -8,6 +8,7 @@ import com.alcaniz.paymybuddy.repository.AccountRepository;
 import com.alcaniz.paymybuddy.repository.TransactionRepository;
 import com.alcaniz.paymybuddy.service.crud.TransactionService;
 import com.alcaniz.paymybuddy.web.dto.transaction.TransactionCreateDTO;
+import com.alcaniz.paymybuddy.web.dto.transaction.TransactionDTO;
 import com.alcaniz.paymybuddy.web.mapper.TransactionMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,21 +23,20 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-@Transactional
+
 @RequiredArgsConstructor
 @Slf4j
 public class TransactionServiceImpl implements TransactionService {
 
     private static final BigDecimal FEE_RATE = new BigDecimal("0.005"); // 0,5%
 
-
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final TransactionMapper transactionMapper;
 
-    @Transactional(readOnly = true)
+    @Transactional
     @Override
-    public Transaction create(TransactionCreateDTO dto) {
+    public TransactionDTO create(TransactionCreateDTO dto) {
         log.debug("Appel de TransactionService.create()");
         if (dto == null) {
             log.warn("create() refusée : DTO null");
@@ -47,7 +47,6 @@ public class TransactionServiceImpl implements TransactionService {
         Integer receiverId = dto.receiverAccountId();
         BigDecimal amount = dto.amount();
 
-        // Rappels de validations défensives (en plus des annotations)
         if (senderId == null || receiverId == null) {
             throw new BadRequestException("Les identifiants des comptes émetteur et destinataire sont obligatoires.");
         }
@@ -58,53 +57,43 @@ public class TransactionServiceImpl implements TransactionService {
             throw new BadRequestException("Le montant doit être supérieur ou égal à 0,01.");
         }
 
-        // Chargement des comptes
         Account sender = accountRepository.findById(senderId)
                 .orElseThrow(() -> new BadRequestException("Compte émetteur introuvable: id=" + senderId));
         Account receiver = accountRepository.findById(receiverId)
                 .orElseThrow(() -> new BadRequestException("Compte destinataire introuvable: id=" + receiverId));
 
-        // Règle métier : mêmes devises uniquement (si applicable)
         if (StringUtils.hasText(sender.getCurrency()) && StringUtils.hasText(receiver.getCurrency())
                 && !sender.getCurrency().equals(receiver.getCurrency())) {
             throw new BusinessException("Les transferts ne sont autorisés qu'entre comptes de même devise.");
         }
 
-        // Calcul des frais
         BigDecimal fee = calculateFee(amount);
 
-        // Vérification de solde suffisant (montant + frais)
         BigDecimal totalDebit = amount.add(fee);
         if (sender.getBalance().compareTo(totalDebit) < 0) {
             log.warn("create() refusée : solde insuffisant. Solde={}, Débit requis={}", sender.getBalance(), totalDebit);
             throw new BusinessException("Solde insuffisant pour effectuer cette transaction.");
         }
 
-        // Mouvement de fonds
         sender.setBalance(sender.getBalance().subtract(totalDebit));
         receiver.setBalance(receiver.getBalance().add(amount));
 
-        // Construction et persistance de la transaction
-        Transaction toSave = transactionMapper.toEntity(dto)
-                .toBuilder()
-                .senderAccount(sender)
-                .receiverAccount(receiver)
-                .fee(fee)
-                .build();
+        Transaction toSave = transactionMapper.toEntity(dto);
+        toSave.setSenderAccount(sender);
+        toSave.setReceiverAccount(receiver);
+        toSave.setFee(fee);
 
-        // Sauvegardes atomiques (dans la même transaction)
         accountRepository.save(sender);
         accountRepository.save(receiver);
         Transaction saved = transactionRepository.save(toSave);
 
         log.info("Transaction créée id={} montant={} frais={} sender={} receiver={}",
                 saved.getId(), saved.getAmount(), saved.getFee(), sender.getId(), receiver.getId());
-        return saved;
+        return transactionMapper.toDto(saved);
     }
-
+@Transactional(readOnly = true)
     @Override
-
-    public List<Transaction> getHistoryForAccount(Integer accountId) {
+    public List<TransactionDTO> getHistoryForAccount(Integer accountId) {
         log.debug("Appel de getHistoryForAccount(accountId={})", accountId);
         if (accountId == null) {
             log.debug("getHistoryForAccount : accountId nul -> liste vide");
@@ -112,21 +101,19 @@ public class TransactionServiceImpl implements TransactionService {
         }
         return transactionRepository.findAllBySenderAccount_IdOrReceiverAccount_IdOrderByCreatedAtDesc(
                 accountId, accountId
-        );
+        ).stream().map(transactionMapper::toDto).toList();
     }
-
+@Transactional(readOnly = true)
     @Override
-
-    public Optional<Transaction> getById(Integer id) {
+    public Optional<TransactionDTO> getById(Integer id) {
         log.debug("Appel de getById(id={})", id);
         if (id == null) return Optional.empty();
-        return transactionRepository.findById(id);
+        return transactionRepository.findById(id).map(transactionMapper::toDto);
     }
 
     // ---------- Règles de calcul ----------
 
     private BigDecimal calculateFee(BigDecimal amount) {
-        // Frais = montant * rate, arrondi à 2 décimales (HALF_UP), sans minimum
         return amount.multiply(FEE_RATE).setScale(2, RoundingMode.HALF_UP);
     }
 }

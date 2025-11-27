@@ -4,10 +4,10 @@ import com.alcaniz.paymybuddy.model.Account;
 import com.alcaniz.paymybuddy.model.User;
 import com.alcaniz.paymybuddy.repository.AccountRepository;
 import com.alcaniz.paymybuddy.repository.UserRepository;
-import com.alcaniz.paymybuddy.service.crud.UserService;
 import com.alcaniz.paymybuddy.web.dto.account.AccountCreateDTO;
-import com.alcaniz.paymybuddy.web.exception.BadRequestException;
+import com.alcaniz.paymybuddy.web.dto.account.AccountDTO;
 import com.alcaniz.paymybuddy.web.mapper.AccountMapper;
+import com.alcaniz.paymybuddy.web.exception.BadRequestException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,18 +19,18 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-@Transactional
+
 @RequiredArgsConstructor
 @Slf4j
-public class AccountServiceImpl implements UserService.AccountService {
+public class AccountServiceImpl implements com.alcaniz.paymybuddy.service.crud.AccountService {
 
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
     private final AccountMapper accountMapper;
 
-    @Transactional(readOnly = true)
+    @Transactional
     @Override
-    public Account create(AccountCreateDTO dto) {
+    public AccountDTO create(AccountCreateDTO dto) {
         log.debug("Appel de AccountService.create()");
         if (dto == null) {
             log.warn("create() refusée : DTO null");
@@ -65,31 +65,33 @@ public class AccountServiceImpl implements UserService.AccountService {
 
         Account saved = accountRepository.save(toSave);
         log.info("Compte créé id={} userId={} name={} currency={}", saved.getId(), userId, saved.getAccountName(), saved.getCurrency());
-        return saved;
+        return accountMapper.toDto(saved);
     }
 
+    @Transactional(readOnly = true)
     @Override
-
-    public Optional<Account> getById(Integer id) {
+    public Optional<AccountDTO> getById(Integer id) {
         log.debug("Appel de AccountService.getById(id={})", id);
         if (id == null) {
             log.debug("getById : id nul -> Optional.empty()");
             return Optional.empty();
         }
-        return accountRepository.findById(id);
+        return accountRepository.findById(id).map(accountMapper::toDto);
     }
 
+    @Transactional(readOnly = true)
     @Override
-
-    public List<Account> getAllForUser(Integer userId) {
+    public List<AccountDTO> getAllForUser(Integer userId) {
         log.debug("Appel de AccountService.getAllForUser(userId={})", userId);
         if (userId == null) {
             log.debug("getAllForUser : userId nul -> liste vide");
             return Collections.emptyList();
         }
-        return accountRepository.findAllByUser_Id(userId);
+        return accountRepository.findAllByUser_Id(userId).stream()
+                .map(accountMapper::toDto)
+                .toList();
     }
-
+    @Transactional
     @Override
     public void deleteById(Integer id) {
         log.debug("Appel de AccountService.deleteById(id={})", id);

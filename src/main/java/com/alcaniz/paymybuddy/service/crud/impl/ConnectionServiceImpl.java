@@ -7,6 +7,7 @@ import com.alcaniz.paymybuddy.repository.UserConnectionRepository;
 import com.alcaniz.paymybuddy.repository.UserRepository;
 import com.alcaniz.paymybuddy.service.crud.ConnectionService;
 import com.alcaniz.paymybuddy.web.dto.connection.UserConnectionDTO;
+import com.alcaniz.paymybuddy.web.dto.connection.ConnectionDTO;
 import com.alcaniz.paymybuddy.web.exception.BadRequestException;
 import com.alcaniz.paymybuddy.web.exception.BusinessException;
 import com.alcaniz.paymybuddy.web.mapper.UserConnectionMapper;
@@ -19,7 +20,7 @@ import java.util.Collections;
 import java.util.List;
 
 @Service
-@Transactional
+
 @RequiredArgsConstructor
 @Slf4j
 public class ConnectionServiceImpl implements ConnectionService {
@@ -28,8 +29,9 @@ public class ConnectionServiceImpl implements ConnectionService {
     private final UserRepository userRepository;
     private final UserConnectionMapper userConnectionMapper;
 
+    @Transactional
     @Override
-    public UserConnection create(UserConnectionDTO dto) {
+    public ConnectionDTO create(UserConnectionDTO dto) {
         log.debug("Appel de ConnectionService.create()");
         if (dto == null) {
             log.warn("create() refusée : DTO null");
@@ -46,13 +48,11 @@ public class ConnectionServiceImpl implements ConnectionService {
             throw new BusinessException("Impossible de se connecter à soi-même.");
         }
 
-        // Existence des utilisateurs
         User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new BadRequestException("Utilisateur owner introuvable: id=" + ownerId));
         User related = userRepository.findById(relatedId)
                 .orElseThrow(() -> new BadRequestException("Utilisateur related introuvable: id=" + relatedId));
 
-        // Doublon
         if (userConnectionRepository.existsByOwner_IdAndRelated_Id(ownerId, relatedId)) {
             throw new BusinessException("La connexion existe déjà.");
         }
@@ -63,20 +63,21 @@ public class ConnectionServiceImpl implements ConnectionService {
 
         UserConnection saved = userConnectionRepository.save(toSave);
         log.info("Connexion créée ownerId={} relatedId={}", ownerId, relatedId);
-        return saved;
+        return userConnectionMapper.toDto(saved);
     }
-
+    @Transactional(readOnly = true)
     @Override
-
-    public List<UserConnection> getAllForOwner(Integer ownerUserId) {
+    public List<ConnectionDTO> getAllForOwner(Integer ownerUserId) {
         log.debug("Appel de getAllForOwner(ownerUserId={})", ownerUserId);
         if (ownerUserId == null) {
             log.debug("getAllForOwner : ownerUserId nul -> liste vide");
-            return Collections.emptyList();
+            return java.util.Collections.emptyList();
         }
-        return userConnectionRepository.findAllByOwner_Id(ownerUserId);
+        return userConnectionRepository.findAllByOwner_Id(ownerUserId).stream()
+                .map(userConnectionMapper::toDto)
+                .toList();
     }
-
+    @Transactional
     @Override
     public void delete(Integer ownerUserId, Integer relatedUserId) {
         log.debug("Appel de delete(ownerUserId={}, relatedUserId={})", ownerUserId, relatedUserId);

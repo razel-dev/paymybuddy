@@ -4,6 +4,7 @@ import com.alcaniz.paymybuddy.model.User;
 import com.alcaniz.paymybuddy.repository.UserRepository;
 import com.alcaniz.paymybuddy.service.crud.UserService;
 import com.alcaniz.paymybuddy.web.dto.user.UserCreateDTO;
+import com.alcaniz.paymybuddy.web.dto.user.UserDTO;
 import com.alcaniz.paymybuddy.web.exception.BadRequestException;
 import com.alcaniz.paymybuddy.web.exception.BusinessException;
 import jakarta.validation.Valid;
@@ -28,7 +29,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
 
     @Override
-    public User create(@Valid UserCreateDTO dto) {
+    public UserDTO create(@Valid UserCreateDTO dto) {
         log.debug("Appel de create()");
         if (dto == null) {
             log.warn("create() refusée : DTO null");
@@ -62,21 +63,19 @@ public class UserServiceImpl implements UserService {
 
         String passwordHash = passwordEncoder.encode(rawPassword);
 
-        // Construction via Lombok builder (évite le new User() qui est inaccessible)
-        User user = User.builder()
-                .username(username)
-                .email(email)
-                .password(passwordHash)
-                .build();
+        // Construction de l'entité via constructeur par défaut + setters (aligné avec l'entité actuelle)
+        User user = new User();
+        user.setUsername(username);
+        user.setEmail(email);
+        user.setPassword(passwordHash);
 
         User saved = userRepository.save(user);
         log.info("Utilisateur créé avec id={} email={}", saved.getId(), saved.getEmail());
-        return saved;
+        return toDto(saved);
     }
 
     @Override
-
-    public Optional<User> getById(Integer id) {
+    public Optional<UserDTO> getById(Integer id) {
         log.debug("Appel de getById(id={})", id);
         if (id == null) {
             log.debug("getById : id nul -> Optional.empty()");
@@ -84,12 +83,11 @@ public class UserServiceImpl implements UserService {
         }
         Optional<User> res = userRepository.findById(id);
         log.debug("getById : utilisateur trouvé = {}", res.isPresent());
-        return res;
+        return res.map(this::toDto);
     }
 
     @Override
-
-    public Optional<User> getByEmail(String email) {
+    public Optional<UserDTO> getByEmail(String email) {
         log.debug("Appel de getByEmail(email={})", email);
         if (!StringUtils.hasText(email)) {
             log.debug("getByEmail : email vide -> Optional.empty()");
@@ -97,7 +95,7 @@ public class UserServiceImpl implements UserService {
         }
         Optional<User> res = userRepository.findByEmail(email.trim().toLowerCase());
         log.debug("getByEmail : utilisateur trouvé = {}", res.isPresent());
-        return res;
+        return res.map(this::toDto);
     }
 
     @Override
@@ -126,5 +124,14 @@ public class UserServiceImpl implements UserService {
         }
         userRepository.deleteById(id);
         log.info("Utilisateur supprimé id={}", id);
+    }
+
+    private UserDTO toDto(User user) {
+        return new UserDTO(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getCreatedAt()
+        );
     }
 }
