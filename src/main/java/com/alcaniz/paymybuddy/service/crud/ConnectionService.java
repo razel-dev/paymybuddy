@@ -1,7 +1,7 @@
 package com.alcaniz.paymybuddy.service.crud;
 
-import com.alcaniz.paymybuddy.model.UserConnection;
 import com.alcaniz.paymybuddy.web.dto.connection.UserConnectionDTO;
+import com.alcaniz.paymybuddy.web.dto.connection.ConnectionDTO;
 import jakarta.validation.Valid;
 import org.springframework.validation.annotation.Validated;
 
@@ -16,12 +16,12 @@ public interface ConnectionService {
      * - refuse les doublons
      * - refuse owner == related
      */
-    UserConnection create(@Valid UserConnectionDTO dto);
+    ConnectionDTO create(@Valid UserConnectionDTO dto);
 
     /**
      * Liste des connexions d'un utilisateur (owner).
      */
-    List<UserConnection> getAllForOwner(Integer ownerUserId);
+    List<ConnectionDTO> getAllForOwner(Integer ownerUserId);
 
     /**
      * Supprime une connexion (idempotent).

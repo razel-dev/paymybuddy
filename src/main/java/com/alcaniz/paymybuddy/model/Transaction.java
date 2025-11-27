@@ -10,20 +10,9 @@ import java.time.Instant;
 @Setter
 @Entity
 @NoArgsConstructor
-
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Table(name = "transactions")
 public class Transaction {
-
-
-@Builder(toBuilder = true)
-private Transaction(@NonNull Account senderAccount, @NonNull Account receiverAccount, String description, @NonNull BigDecimal amount, @NonNull BigDecimal fee) {
-    this.senderAccount = senderAccount;
-    this.receiverAccount = receiverAccount;
-    this.description = description;
-    this.amount = amount;
-    this.fee = fee;
-}
 
     @EqualsAndHashCode.Include
     @Id
@@ -50,6 +39,5 @@ private Transaction(@NonNull Account senderAccount, @NonNull Account receiverAcc
 
     @Column(name = "created_at", insertable = false, updatable = false)
     private Instant createdAt;
-
 
 }

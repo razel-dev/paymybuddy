@@ -17,12 +17,6 @@ public class BankTransfer {
 
     public enum TransferType { DEPOSIT, WITHDRAWAL }
 
-    @Builder(toBuilder = true)
-    private BankTransfer(@NonNull Account account, @NonNull BigDecimal amount, @NonNull TransferType type) {
-        this.account = account;
-        this.amount = amount;
-        this.type = type;
-    }
     @EqualsAndHashCode.Include
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

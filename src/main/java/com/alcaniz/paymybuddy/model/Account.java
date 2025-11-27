@@ -15,13 +15,6 @@ import java.time.Instant;
 @Table(name = "accounts")
 public class Account {
 
-    @Builder(toBuilder = true)
-    private Account(@NonNull User user, @NonNull String accountName, @NonNull String currency, BigDecimal balance) {
-        this.user = user;
-        this.accountName = accountName;
-        this.currency = currency;
-        this.balance = (balance != null) ? balance : BigDecimal.ZERO;
-    }
 
     @EqualsAndHashCode.Include
     @Id
