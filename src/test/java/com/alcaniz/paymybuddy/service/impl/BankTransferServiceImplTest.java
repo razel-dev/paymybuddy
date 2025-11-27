@@ -8,6 +8,7 @@ import com.alcaniz.paymybuddy.repository.BankTransferRepository;
 import com.alcaniz.paymybuddy.service.crud.impl.BankTransferServiceImpl;
 import com.alcaniz.paymybuddy.web.dto.banktransfer.BankTransferCreateDTO;
 import com.alcaniz.paymybuddy.web.mapper.BankTransferMapper;
+import com.alcaniz.paymybuddy.web.dto.banktransfer.BankTransferDTO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -34,17 +35,23 @@ class BankTransferServiceImplTest {
 
     private static Account accountWithBalance(int id, String balance) {
         User u = mock(User.class);
-        Account a = Account.builder()
-                .user(u).accountName("acc-" + id).currency("EUR")
-                .balance(new BigDecimal(balance))
-                .build();
+        Account a = new Account();
+        a.setUser(u);
+        a.setAccountName("acc-" + id);
+        a.setCurrency("EUR");
+        a.setBalance(new BigDecimal(balance));
         a.setId(id);
         return a;
     }
 
     private static Account dummyAccount() {
         User u = mock(User.class);
-        return Account.builder().user(u).accountName("dummy").currency("EUR").balance(new BigDecimal("0.00")).build();
+        Account a = new Account();
+        a.setUser(u);
+        a.setAccountName("dummy");
+        a.setCurrency("EUR");
+        a.setBalance(new BigDecimal("0.00"));
+        return a;
     }
 
     @Test
@@ -54,20 +61,29 @@ class BankTransferServiceImplTest {
         var acc = accountWithBalance(1, "10.00");
         when(accountRepository.findById(1)).thenReturn(Optional.of(acc));
 
-        var mapped = BankTransfer.builder()
-                .account(dummyAccount())
-                .amount(dto.amount())
-                .type(BankTransfer.TransferType.DEPOSIT)
-                .build();
+        var mapped = new BankTransfer();
+        mapped.setAccount(dummyAccount());
+        mapped.setAmount(dto.amount());
+        mapped.setType(BankTransfer.TransferType.DEPOSIT);
         when(bankTransferMapper.toEntity(dto)).thenReturn(mapped);
         when(bankTransferRepository.save(any(BankTransfer.class))).thenAnswer(i -> i.getArgument(0));
+
+        when(bankTransferMapper.toDto(any(BankTransfer.class))).thenAnswer(i -> {
+            BankTransfer bt = i.getArgument(0);
+            return new com.alcaniz.paymybuddy.web.dto.banktransfer.BankTransferDTO(
+                    bt.getId(), bt.getAccount().getId(), bt.getAmount(),
+                    com.alcaniz.paymybuddy.web.dto.banktransfer.BankTransferDTO.BankTransferType.valueOf(bt.getType().name()),
+                    bt.getCreatedAt()
+            );
+        });
 
         var res = service.create(dto);
 
         assertEquals(new BigDecimal("60.00"), acc.getBalance()); // 10 + 50
-        assertEquals(new BigDecimal("50.00"), res.getAmount());
+        assertEquals(new BigDecimal("50.00"), res.amount());
         verify(accountRepository).save(acc);
         verify(bankTransferRepository).save(any(BankTransfer.class));
+        verify(bankTransferMapper).toDto(any(BankTransfer.class));
     }
 
     @Test
@@ -84,14 +100,21 @@ class BankTransferServiceImplTest {
     @Test
     void getById() {
         // Chemin OK: délégation au repository.
-        var bt = BankTransfer.builder()
-                .account(dummyAccount())
-                .amount(new BigDecimal("1.00"))
-                .type(BankTransfer.TransferType.DEPOSIT)
-                .build();
-        bt.setId(9);
+        var bt = new BankTransfer();
+        bt.setAccount(dummyAccount());
+        bt.setAmount(new BigDecimal("1.00"));
+        bt.setType(BankTransfer.TransferType.DEPOSIT);
         when(bankTransferRepository.findById(9)).thenReturn(Optional.of(bt));
+        // Stub du mapping en DTO pour que l'Optional contienne bien une valeur
+        when(bankTransferMapper.toDto(bt)).thenReturn(
+                new com.alcaniz.paymybuddy.web.dto.banktransfer.BankTransferDTO(
+                        9, null, new BigDecimal("1.00"),
+                        com.alcaniz.paymybuddy.web.dto.banktransfer.BankTransferDTO.BankTransferType.DEPOSIT,
+                        null
+                )
+        );
 
-        assertEquals(9, service.getById(9).orElseThrow().getId());
+        assertEquals(9, service.getById(9).orElseThrow().id());
+        verify(bankTransferMapper).toDto(bt);
     }
 }

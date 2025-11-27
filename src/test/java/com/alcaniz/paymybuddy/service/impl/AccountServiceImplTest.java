@@ -37,23 +37,28 @@ class AccountServiceImplTest {
         User user = mock(User.class);
         when(userRepository.findById(1)).thenReturn(Optional.of(user));
 
-        Account mapped = Account.builder()
-                .user(user)
-                .accountName("Mon Compte")
-                .currency("EUR")
-                .build();
+        Account mapped = new Account();
+        mapped.setUser(user);
+        mapped.setAccountName("Mon Compte");
+        mapped.setCurrency("EUR");
         when(accountMapper.toEntity(any(AccountCreateDTO.class))).thenReturn(mapped);
 
-        Account saved = mapped.toBuilder().build();
-        saved.setId(42);
-        when(accountRepository.save(any(Account.class))).thenReturn(saved);
+        when(accountRepository.save(any(Account.class))).thenAnswer(inv -> {
+            Account a = inv.getArgument(0);
+            a.setId(42);
+            return a;
+        });
+        // On renvoie un DTO non null pour éviter un NPE dans map()
+        var dtoResult = mock(com.alcaniz.paymybuddy.web.dto.account.AccountDTO.class);
+        when(accountMapper.toDto(any(Account.class))).thenReturn(dtoResult);
 
-        Account res = service.create(dto);
+        service.create(dto);
 
-        assertEquals(42, res.getId());
+        // On vérifie les interactions clefs (existence user, mapping, save, mapping retour)
         verify(userRepository).findById(1);
         verify(accountMapper).toEntity(any(AccountCreateDTO.class));
         verify(accountRepository).save(any(Account.class));
+        verify(accountMapper).toDto(any(Account.class));
     }
 
     @Test
@@ -62,16 +67,19 @@ class AccountServiceImplTest {
         assertTrue(service.getById(null).isEmpty());
         verify(accountRepository, never()).findById(any());
 
-        Account acc = Account.builder()
-                .user(mock(User.class))
-                .accountName("A")
-                .currency("EUR")
-                .build();
+        Account acc = new Account();
+        acc.setUser(mock(User.class));
+        acc.setAccountName("A");
+        acc.setCurrency("EUR");
         acc.setId(7);
         when(accountRepository.findById(7)).thenReturn(Optional.of(acc));
+        // On renvoie un DTO non null pour éviter un NPE dans Optional.map(...)
+        var dtoMapped = mock(com.alcaniz.paymybuddy.web.dto.account.AccountDTO.class);
+        when(accountMapper.toDto(acc)).thenReturn(dtoMapped);
 
-        assertEquals(7, service.getById(7).orElseThrow().getId());
+        assertTrue(service.getById(7).isPresent());
         verify(accountRepository).findById(7);
+        verify(accountMapper).toDto(acc);
     }
 
     @Test

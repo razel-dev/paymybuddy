@@ -18,6 +18,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import com.alcaniz.paymybuddy.web.dto.user.UserDTO;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceImplTest {
@@ -44,14 +45,14 @@ class UserServiceImplTest {
         });
 
         // Act
-        User created = service.create(dto);
+        UserDTO created = service.create(dto);
 
         // Assert
         assertNotNull(created);
-        assertEquals(42, created.getId());
-        assertEquals("Alice", created.getUsername());
-        assertEquals("alice@mail.com", created.getEmail());
-        assertEquals("HASHED", created.getPassword());
+        assertEquals(42, created.id());
+        assertEquals("Alice", created.username());
+        assertEquals("alice@mail.com", created.email());
+        // pas de password dans le DTO
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).existsByEmail("alice@mail.com");
@@ -71,14 +72,17 @@ class UserServiceImplTest {
     @Test
     void getById() {
         // Arrange
-        User u = User.builder().username("Bob").email("bob@mail.com").password("x").build();
+        User u = new User();
+        u.setUsername("Bob");
+        u.setEmail("bob@mail.com");
+        u.setPassword("x");
         u.setId(7);
         when(userRepository.findById(7)).thenReturn(Optional.of(u));
 
         // Act + Assert (id non nul)
-        Optional<User> found = service.getById(7);
+        Optional<UserDTO> found = service.getById(7);
         assertTrue(found.isPresent());
-        assertEquals(7, found.get().getId());
+        assertEquals(7, found.get().id());
         verify(userRepository).findById(7);
 
         // Act + Assert (id nul -> empty, pas d'appel repo)
@@ -89,14 +93,17 @@ class UserServiceImplTest {
     @Test
     void getByEmail() {
         // Arrange
-        User u = User.builder().username("Eve").email("eve@mail.com").password("x").build();
+        User u = new User();
+        u.setUsername("Eve");
+        u.setEmail("eve@mail.com");
+        u.setPassword("x");
         u.setId(9);
         when(userRepository.findByEmail("eve@mail.com")).thenReturn(Optional.of(u));
 
         // Act + Assert (normalisation trim + lower-case)
-        Optional<User> res = service.getByEmail("  EVE@mail.com  ");
+        Optional<UserDTO> res = service.getByEmail("  EVE@mail.com  ");
         assertTrue(res.isPresent());
-        assertEquals("eve@mail.com", res.get().getEmail());
+        assertEquals("eve@mail.com", res.get().email());
         verify(userRepository).findByEmail("eve@mail.com");
 
         // Act + Assert (email vide -> empty, pas d'appel repo)

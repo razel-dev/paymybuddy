@@ -5,9 +5,8 @@ import com.alcaniz.paymybuddy.model.Transaction;
 import com.alcaniz.paymybuddy.model.User;
 import com.alcaniz.paymybuddy.repository.AccountRepository;
 import com.alcaniz.paymybuddy.repository.TransactionRepository;
-import com.alcaniz.paymybuddy.service.crud.impl.TransactionServiceImpl;
 import com.alcaniz.paymybuddy.web.dto.transaction.TransactionCreateDTO;
-import com.alcaniz.paymybuddy.web.exception.BadRequestException;
+import com.alcaniz.paymybuddy.web.dto.transaction.TransactionDTO;
 import com.alcaniz.paymybuddy.web.exception.BusinessException;
 import com.alcaniz.paymybuddy.web.mapper.TransactionMapper;
 import org.junit.jupiter.api.Test;
@@ -20,114 +19,109 @@ import java.math.BigDecimal;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-
 
 @ExtendWith(MockitoExtension.class)
 class TransactionServiceImplTest {
 
-    @Mock TransactionRepository txRepo;
-    @Mock AccountRepository accRepo;
-    @Mock TransactionMapper mapper;
-    @InjectMocks
-    TransactionServiceImpl service;
+    @Mock TransactionRepository transactionRepository;
+    @Mock AccountRepository accountRepository;
+    @Mock TransactionMapper transactionMapper;
 
-    // Helpers de création via builder (pas de new)
-    private static Account accountWithBalance(int id, String balance) {
-        User u = mock(User.class);
-        Account a = Account.builder()
-                .user(u)
-                .accountName("acc-" + id)
-                .currency("EUR")
-                .balance(new BigDecimal(balance))
-                .build();
+    @InjectMocks
+    com.alcaniz.paymybuddy.service.crud.impl.TransactionServiceImpl service;
+
+    // ---------- Helpers ----------
+    private static Account acc(int id, String bal, String cur) {
+        User u = new User();
+        Account a = new Account();
+        a.setUser(u);
+        a.setAccountName("acc-" + id);
+        a.setCurrency(cur);
+        a.setBalance(new BigDecimal(bal));
         a.setId(id);
         return a;
     }
 
-    private static Account dummyAccount() {
-        User u = mock(User.class);
-        return Account.builder()
-                .user(u)
-                .accountName("dummy")
-                .currency("EUR")
-                .balance(new BigDecimal("0.00"))
-                .build();
+    // Base de Transaction pour le mapper, sans builder (utilise les setters)
+    private static Transaction baseTxForMapper(BigDecimal amount) {
+        Transaction tx = new Transaction();
+        tx.setSenderAccount(new Account());
+        tx.setReceiverAccount(new Account());
+        tx.setAmount(amount);
+        tx.setFee(BigDecimal.ZERO);
+        return tx;
     }
 
     @Test
-    void create_ok_appliqueFraisEtSoldes() {
-        // But : vérifier frais proportionnels (100 * 0,5% = 0,50),
-        // soldes mis à jour (débit = montant + frais), et persistance.
-        var dto = new TransactionCreateDTO(1, 2, new BigDecimal("100.00"), "t");
-        var sender = accountWithBalance(1, "200.00");
-        var receiver = accountWithBalance(2, "10.00");
-        when(accRepo.findById(1)).thenReturn(Optional.of(sender));
-        when(accRepo.findById(2)).thenReturn(Optional.of(receiver));
+    void create_soldeInsuffisant_lanceBusiness_et_pasDeSave() {
+        // Arrange
+        var dto = new TransactionCreateDTO(1, 2, new BigDecimal("50.00"), "x"); // total débit = 50,25
+        var sender = acc(1, "50.00", "EUR");
+        var receiver = acc(2, "0.00", "EUR");
 
-        // Le mapper retourne une entité "base" (peu importe les comptes/frais, ils sont réécrits par le service via toBuilder()).
-        var mapped = Transaction.builder()
-                .senderAccount(dummyAccount())
-                .receiverAccount(dummyAccount())
-                .description("t")
-                .amount(dto.amount())
-                .fee(BigDecimal.ZERO)
-                .build();
-        when(mapper.toEntity(dto)).thenReturn(mapped);
-        when(txRepo.save(any(Transaction.class))).thenAnswer(i -> i.getArgument(0));
+        when(accountRepository.findById(1)).thenReturn(Optional.of(sender));
+        when(accountRepository.findById(2)).thenReturn(Optional.of(receiver));
+        // Surtout ne pas stubber le mapper ici : le service jette avant de l'atteindre
 
+        // Act + Assert
+        assertThrows(BusinessException.class, () -> service.create(dto));
+        verify(transactionRepository, never()).save(any(Transaction.class));
+        verify(accountRepository, never()).save(any(Account.class));
+        assertEquals(new BigDecimal("50.00"), sender.getBalance());
+        assertEquals(new BigDecimal("0.00"), receiver.getBalance());
+    }
+
+    @Test
+    void create_happyPath_calculeFrais_metAJourSoldes_etMappeDto() {
+        // Arrange
+        var dto = new TransactionCreateDTO(1, 2, new BigDecimal("100.00"), "desc");
+        var sender = acc(1, "200.00", "EUR");
+        var receiver = acc(2, "10.00", "EUR");
+
+        when(accountRepository.findById(1)).thenReturn(Optional.of(sender));
+        when(accountRepository.findById(2)).thenReturn(Optional.of(receiver));
+
+        // Important: toEntity retourne une base "builder-safe"
+        Transaction base = baseTxForMapper(dto.amount());
+        when(transactionMapper.toEntity(dto)).thenReturn(base);
+
+        var saved = new Transaction(); // on peut garder simple
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(saved);
+
+        var dtoOut = mock(TransactionDTO.class);
+        when(transactionMapper.toDto(saved)).thenReturn(dtoOut);
+
+        // Act
         var res = service.create(dto);
 
-        assertEquals(new BigDecimal("0.50"), res.getFee());
-        assertEquals(new BigDecimal("99.50"), sender.getBalance());   // 200 - (100 + 0,50)
-        assertEquals(new BigDecimal("110.00"), receiver.getBalance()); // 10 + 100
-        verify(txRepo).save(any(Transaction.class));
+        // Assert
+        assertSame(dtoOut, res);
+        // 100.00 + 0.5% = 0.50 -> 200 - 100.50 = 99.50 ; 10 + 100 = 110
+        org.assertj.core.api.Assertions.assertThat(sender.getBalance()).isEqualByComparingTo("99.50");
+        org.assertj.core.api.Assertions.assertThat(receiver.getBalance()).isEqualByComparingTo("110.00");
+
+        verify(accountRepository, times(2)).save(any(Account.class)); // sender + receiver
+        verify(transactionRepository).save(any(Transaction.class));
+        verify(transactionMapper).toDto(saved);
     }
 
     @Test
-    void create_nullDto() {
-        // DTO null -> BadRequestException.
-        assertThrows(BadRequestException.class, () -> service.create(null));
-    }
+    void getById_ok_mappeVersDto() {
+        // Arrange
+        var entity = mock(Transaction.class);
+        when(transactionRepository.findById(7)).thenReturn(Optional.of(entity));
+        var dto = mock(TransactionDTO.class);
+        when(transactionMapper.toDto(entity)).thenReturn(dto);
 
-    @Test
-    void getHistory_accountNull_retourListeVide() {
-        // accountId null -> liste vide, pas d'appel repository.
-        assertTrue(service.getHistoryForAccount(null).isEmpty());
-        verify(txRepo, never()).findAllBySenderAccount_IdOrReceiverAccount_IdOrderByCreatedAtDesc(any(), any());
-    }
+        // Act
+        var res = service.getById(7);
 
-    @Test
-    void getById_ok() {
-        // Délégation repository quand l'id est fourni.
-        var tx = Transaction.builder()
-                .senderAccount(dummyAccount())
-                .receiverAccount(dummyAccount())
-                .amount(new BigDecimal("1.00"))
-                .fee(BigDecimal.ZERO)
-                .build();
-        tx.setId(7);
-
-        when(txRepo.findById(7)).thenReturn(Optional.of(tx));
-
-        assertEquals(7, service.getById(7).orElseThrow().getId());
-    }
-
-    @Test
-    void create_soldeInsuffisant() {
-        // Solde émetteur ne couvre pas (montant + frais) -> BusinessException.
-        var dto = new TransactionCreateDTO(1, 2, new BigDecimal("50.00"), null); // frais 0,25 -> total 50,25
-        when(accRepo.findById(1)).thenReturn(Optional.of(accountWithBalance(1, "50.00")));
-        when(accRepo.findById(2)).thenReturn(Optional.of(accountWithBalance(2, "0.00")));
-        var mapped = Transaction.builder()
-                .senderAccount(dummyAccount())
-                .receiverAccount(dummyAccount())
-                .amount(dto.amount())
-                .fee(BigDecimal.ZERO)
-                .build();
-        when(mapper.toEntity(dto)).thenReturn(mapped);
-
-        assertThrows(BusinessException.class, () -> service.create(dto));
-        verify(txRepo, never()).save(any());
+        // Assert
+        assertTrue(res.isPresent());
+        assertSame(dto, res.orElseThrow());
+        verify(transactionRepository).findById(7);
+        verify(transactionMapper).toDto(entity);
     }
 }

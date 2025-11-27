@@ -5,6 +5,7 @@ import com.alcaniz.paymybuddy.model.UserConnection;
 import com.alcaniz.paymybuddy.repository.UserConnectionRepository;
 import com.alcaniz.paymybuddy.repository.UserRepository;
 import com.alcaniz.paymybuddy.service.crud.impl.ConnectionServiceImpl;
+import com.alcaniz.paymybuddy.web.dto.connection.ConnectionDTO;
 import com.alcaniz.paymybuddy.web.dto.connection.UserConnectionDTO;
 import com.alcaniz.paymybuddy.web.mapper.UserConnectionMapper;
 import org.junit.jupiter.api.Test;
@@ -42,9 +43,10 @@ class ConnectionServiceImplTest {
         when(mapper.toEntity(dto)).thenReturn(mapped);
         UserConnection saved = mock(UserConnection.class);
         when(repo.save(mapped)).thenReturn(saved);
+        when(mapper.toDto(saved)).thenReturn(mock(ConnectionDTO.class));
 
         // Act
-        UserConnection res = service.create(dto);
+        ConnectionDTO res = service.create(dto);
 
         // Assert
         assertNotNull(res);
@@ -72,7 +74,7 @@ class ConnectionServiceImplTest {
         verify(repo, never()).deleteByOwner_IdAndRelated_Id(anyInt(), anyInt());
 
         // existante -> delete appelé
-        when(repo.existsByOwner_IdAndRelated_Id(3, 4)).thenReturn(true);
+        when(repo.existsByOwner_IdAndRelated_Id((3), 4)).thenReturn(true);
         service.delete(3, 4);
         verify(repo).deleteByOwner_IdAndRelated_Id(3, 4);
 
