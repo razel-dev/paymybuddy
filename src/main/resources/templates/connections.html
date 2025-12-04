@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::body}, 'Connexions')}">
+<body>
+<section class="section">
+    <h2 class="sr-only">Ajouter une relation</h2>
+    <form th:action="@{/connections}" method="post" class="form-inline">
+        <label for="email" class="form-label">Chercher une relation</label>
+        <input id="email" name="email" type="email" placeholder="Saisir une adresse mail" required class="input input-lg">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+        <button type="submit" class="btn btn-warning">Ajouter</button>
+    </form>
+    <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
+    <div th:if="${info}" class="alert alert-info" th:text="${info}"></div>
+</section>
+
+<section class="section">
+    <h2>Mes connexions</h2>
+    <p class="muted" th:if="${#lists.isEmpty(connections)}">Aucune connexion.</p>
+    <ul role="list" th:if="${!#lists.isEmpty(connections)}" class="list">
+        <li th:each="c : ${connections}">
+            <span th:text="${c.relatedUsername} ?: ${c.relatedUserId}">Contact</span>
+            <form th:action="@{/connections/delete}" method="post" style="display:inline;margin-left:.5rem">
+                <input type="hidden" name="relatedUserId" th:value="${c.relatedUserId}">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit" class="btn btn-outline" aria-label="Supprimer cette connexion">Supprimer</button>
+            </form>
+        </li>
+    </ul>
+</section>
+</body>
+</html>

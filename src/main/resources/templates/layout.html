@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light"
+      xmlns:th="http://www.thymeleaf.org"
+      th:fragment="layout(content, pageTitle)">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${pageTitle} ?: 'PayMyBuddy'">PayMyBuddy</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+
+<body>
+<header role="banner">
+    <nav aria-label="Navigation principale">
+        <a th:href="@{/}">Tableau de bord</a> |
+        <a th:href="@{/accounts}">Comptes</a> |
+        <a th:href="@{/transfer}">Transfert</a> |
+        <a th:href="@{/bank}">Virement bancaire</a> |
+        <a th:href="@{/connections}">Connexions</a> |
+        <a th:href="@{/profile}">Profil</a> |
+        <a th:href="@{/logout}">Se déconnecter</a>
+    </nav>
+</header>
+
+<main id="content" role="main" tabindex="-1" class="container">
+    <h1 th:text="${pageTitle} ?: 'PayMyBuddy'">PayMyBuddy</h1>
+
+    <!-- zone de contenu -->
+    <div th:insert="${content}"></div>
+</main>
+
+<footer role="contentinfo" class="footer">
+    <small>&copy; PayMyBuddy - Prototype</small>
+</footer>
+</body>
+</html>

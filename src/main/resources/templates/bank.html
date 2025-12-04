@@ -1,0 +1,80 @@
+<!-- HTML -->
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::body}, 'Virement bancaire')}">
+<body>
+
+<section class="section">
+    <div class="card">
+        <div class="card-header">
+            <h2>Virement bancaire (dépôt/retrait)</h2>
+        </div>
+        <div class="card-body">
+            <form th:action="@{/bank}" th:object="${bankForm}" method="post" class="form-bank">
+                <!-- Compte -->
+                <div class="form-cell">
+                    <label for="account" class="form-label">Compte</label>
+                    <select id="account" class="select" th:field="*{accountId}" required>
+                        <option th:each="a : ${accounts}" th:value="${a.id}"
+                                th:text="${a.accountName + ' (' + a.currency + ')'}">Compte</option>
+                    </select>
+                </div>
+
+                <!-- Type -->
+                <div class="form-cell">
+                    <label for="type" class="form-label">Type</label>
+                    <select id="type" class="select" th:field="*{type}" required>
+                        <option th:value="DEPOSIT">Dépôt</option>
+                        <option th:value="WITHDRAWAL">Retrait</option>
+                    </select>
+                </div>
+
+                <!-- Montant -->
+                <div class="form-cell">
+                    <label for="amount" class="form-label">Montant</label>
+                    <input id="amount" class="input input-amount" th:field="*{amount}" placeholder="0,00" required>
+                </div>
+
+                <!-- Bouton -->
+                <div class="form-cell form-cell-button">
+                    <label class="sr-only" for="exec">Exécuter</label>
+                    <button id="exec" type="submit" class="btn btn-primary">Exécuter</button>
+                </div>
+
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            </form>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="card table-card">
+        <div class="card-header">
+            <h2>Historique</h2>
+        </div>
+        <div class="card-body">
+            <p class="muted" th:if="${#lists.isEmpty(history)}">Aucune opération bancaire pour le moment.</p>
+            <table class="table" th:if="${!#lists.isEmpty(history)}">
+                <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th class="num">Montant</th>
+                    <th>Compte</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="t : ${history}">
+                    <td th:text="${#temporals.format(t.createdAt, 'dd/MM/yy HH:mm')}">-</td>
+                    <td th:text="${t.type}">DEPOSIT</td>
+                    <td class="num" th:text="${#numbers.formatDecimal(t.amount, 1, 'POINT', 2, 'POINT')}">0.00</td>
+                    <td th:text="${t.accountId}">-</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+</body>
+</html>

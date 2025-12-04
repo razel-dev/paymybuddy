@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::body}, 'Tableau de bord')}">
+<body>
+
+<section class="section">
+    <div class="card">
+        <div class="card-header">
+            <h2>Mes comptes</h2>
+        </div>
+        <div class="card-body">
+            <ul role="list" class="list">
+                <li th:each="a : ${accounts}">
+                    <span th:text="${a.accountName}">Compte</span>
+                    &mdash; <span th:text="${a.currency}">EUR</span>
+                    &mdash; Solde:
+                    <strong class="amount"
+                            th:text="${#numbers.formatDecimal(a.balance, 1, 'POINT', 2, 'POINT')}">0.00</strong>
+                </li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<section class="section" th:if="${selectedAccountId != null}">
+    <div class="card table-card">
+        <div class="card-header">
+            <h2>Transactions récentes</h2>
+        </div>
+        <div class="card-body">
+            <p class="muted" th:if="${#lists.isEmpty(recentTransactions)}">Aucune transaction.</p>
+            <table class="table" th:if="${!#lists.isEmpty(recentTransactions)}">
+                <thead>
+                <tr>
+                    <th scope="col">Date</th>
+                    <th scope="col">De</th>
+                    <th scope="col">À</th>
+                    <th scope="col" class="num">Montant</th>
+                    <th scope="col" class="num">Frais</th>
+                    <th scope="col">Description</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="t : ${recentTransactions}">
+                    <td th:text="${#temporals.format(t.createdAt, 'yyyy-MM-dd HH:mm')}">-</td>
+                    <td th:text="${t.senderAccountId}">-</td>
+                    <td th:text="${t.receiverAccountId}">-</td>
+                    <td class="num" th:text="${#numbers.formatDecimal(t.amount, 1, 'POINT', 2, 'POINT')}">-</td>
+                    <td class="num" th:text="${#numbers.formatDecimal(t.fee, 1, 'POINT', 2, 'POINT')}">-</td>
+                    <td th:text="${t.description}">-</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+</body>
+</html>

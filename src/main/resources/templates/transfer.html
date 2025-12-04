@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout :: layout(~{::body}, 'Transfert')}">
+<body>
+
+<section class="section">
+    <div class="card">
+        <div class="card-header">
+            <h2>Transfert entre comptes</h2>
+        </div>
+        <div class="card-body">
+            <form th:action="@{/transfer}" th:object="${transferForm}" method="post" class="form-transfer">
+                <!-- Compte émetteur -->
+                <div class="form-cell">
+                    <label for="sender" class="form-label">Compte émetteur</label>
+                    <select id="sender" class="select" th:field="*{senderAccountId}" required>
+                        <option th:each="a : ${accounts}" th:value="${a.id}"
+                                th:text="${a.accountName + ' (' + a.currency + ')'}">Compte</option>
+                    </select>
+                </div>
+
+                <!-- Compte destinataire (ID pour l’instant) -->
+                <div class="form-cell">
+                    <label for="receiver" class="form-label">Compte destinataire (ID)</label>
+                    <input id="receiver" class="input" th:field="*{receiverAccountId}" inputmode="numeric" placeholder="ID" required>
+                </div>
+
+                <!-- Montant -->
+                <div class="form-cell">
+                    <label for="amount" class="form-label">Montant</label>
+                    <input id="amount" class="input input-amount" th:field="*{amount}" placeholder="0,00" required>
+                </div>
+
+                <!-- Bouton -->
+                <div class="form-cell form-cell-button">
+                    <label class="sr-only" for="pay">Payer</label>
+                    <button id="pay" type="submit" class="btn btn-primary">Payer</button>
+                </div>
+
+                <!-- Description (ligne sous la grille pour garder un champ large) -->
+                <div class="form-cell form-cell-wide">
+                    <label for="desc" class="form-label">Description</label>
+                    <input id="desc" class="input" th:field="*{description}" placeholder="Description">
+                </div>
+
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+            </form>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="card table-card">
+        <div class="card-header">
+            <h2>Historique récent</h2>
+        </div>
+        <div class="card-body">
+            <p class="muted" th:if="${#lists.isEmpty(history)}">Aucune transaction pour le moment.</p>
+            <table class="table" th:if="${!#lists.isEmpty(history)}">
+                <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>De</th>
+                    <th>À</th>
+                    <th class="num">Montant</th>
+                    <th class="num">Frais</th>
+                    <th>Description</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="t : ${history}">
+                    <td th:text="${#temporals.format(t.createdAt, 'dd/MM/yy HH:mm')}">-</td>
+                    <td th:text="${t.senderAccountId}">-</td>
+                    <td th:text="${t.receiverAccountId}">-</td>
+                    <td class="num" th:text="${#numbers.formatDecimal(t.amount, 1, 'POINT', 2, 'POINT')}">-</td>
+                    <td class="num" th:text="${#numbers.formatDecimal(t.fee, 1, 'POINT', 2, 'POINT')}">-</td>
+                    <td th:text="${t.description}">-</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+</body>
+</html>
