@@ -2,31 +2,59 @@
 <html lang="fr" xmlns:th="http://www.thymeleaf.org"
       th:replace="~{layout :: layout(~{::body}, 'Connexions')}">
 <body>
-<section class="section">
-    <h2 class="sr-only">Ajouter une relation</h2>
-    <form th:action="@{/connections}" method="post" class="form-inline">
-        <label for="email" class="form-label">Chercher une relation</label>
-        <input id="email" name="email" type="email" placeholder="Saisir une adresse mail" required class="input input-lg">
+
+<section class="mb-4">
+    <h2 class="visually-hidden">Ajouter une relation</h2>
+
+    <form th:action="@{/connections}" method="post" class="row g-2 align-items-center">
+        <div class="col-auto">
+            <label for="email" class="col-form-label">Chercher une relation</label>
+        </div>
+
+        <div class="col-md-6">
+            <input id="email"
+                   name="email"
+                   type="email"
+                   placeholder="Saisir une adresse mail"
+                   required
+                   class="form-control form-control-lg">
+        </div>
+
         <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-        <button type="submit" class="btn btn-warning">Ajouter</button>
+
+        <div class="col-auto">
+            <button type="submit" class="btn btn-warning">Ajouter</button>
+        </div>
     </form>
-    <div th:if="${error}" class="alert alert-error" th:text="${error}"></div>
-    <div th:if="${info}" class="alert alert-info" th:text="${info}"></div>
+
+    <div th:if="${error}" class="alert alert-danger mt-3" th:text="${error}"></div>
+    <div th:if="${info}" class="alert alert-info mt-3" th:text="${info}"></div>
 </section>
 
-<section class="section">
+<section class="mb-4">
     <h2>Mes connexions</h2>
-    <p class="muted" th:if="${#lists.isEmpty(connections)}">Aucune connexion.</p>
-    <ul role="list" th:if="${!#lists.isEmpty(connections)}" class="list">
-        <li th:each="c : ${connections}">
+
+    <p class="text-muted" th:if="${#lists.isEmpty(connections)}">Aucune connexion.</p>
+
+    <ul role="list" th:if="${!#lists.isEmpty(connections)}" class="list-group">
+        <li th:each="c : ${connections}"
+            class="list-group-item d-flex justify-content-between align-items-center">
             <span th:text="${c.relatedUsername} ?: ${c.relatedUserId}">Contact</span>
-            <form th:action="@{/connections/delete}" method="post" style="display:inline;margin-left:.5rem">
+
+            <form th:action="@{/connections/delete}"
+                  method="post"
+                  class="d-inline ms-2">
                 <input type="hidden" name="relatedUserId" th:value="${c.relatedUserId}">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
-                <button type="submit" class="btn btn-outline" aria-label="Supprimer cette connexion">Supprimer</button>
+                <button type="submit"
+                        class="btn btn-outline-danger btn-sm"
+                        aria-label="Supprimer cette connexion">
+                    Supprimer
+                </button>
             </form>
         </li>
     </ul>
 </section>
+
 </body>
 </html>
