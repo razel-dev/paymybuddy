@@ -14,13 +14,24 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // Par défaut: sessions stateful et CSRF activé (bien pour formulaires Thymeleaf)
+            // Par défaut: sessions stateful + CSRF activé (bien pour formulaires Thymeleaf)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/login", "/css/**", "/js/**", "/images/**").permitAll()
+                .requestMatchers(
+                    "/login",
+                    "/register",
+                    "/css/**",
+                        "/logout"
+
+                ).permitAll()
                 .anyRequest().authenticated()
             )
-            .formLogin(Customizer.withDefaults())  // page de login par défaut de Spring
-            .logout(Customizer.withDefaults());    // /logout par défaut
+            // Page de login personnalisée
+            .formLogin(form -> form
+                .loginPage("/login")
+                .defaultSuccessUrl("/", true) // redirige sur le tableau de bord après connexion
+                .permitAll()
+            )
+            .logout(Customizer.withDefaults());
         return http.build();
     }
 

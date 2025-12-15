@@ -1,6 +1,5 @@
 package com.alcaniz.paymybuddy.web.mapper;
 
-import com.alcaniz.paymybuddy.model.Account;
 import com.alcaniz.paymybuddy.model.Transaction;
 import com.alcaniz.paymybuddy.web.dto.transaction.TransactionCreateDTO;
 import com.alcaniz.paymybuddy.web.dto.transaction.TransactionDTO;
@@ -12,6 +11,7 @@ public interface TransactionMapper {
     // Entity -> DTO
     @Mapping(source = "senderAccount.id", target = "senderAccountId")
     @Mapping(source = "receiverAccount.id", target = "receiverAccountId")
+    @Mapping(source = "receiverAccount.user.email", target = "receiverEmail")
     TransactionDTO toDto(Transaction entity);
 
     // CreateDTO -> Entity
@@ -19,7 +19,7 @@ public interface TransactionMapper {
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "fee", ignore = true) // calcul métier côté service
     @Mapping(target = "senderAccount.id", source = "senderAccountId")
-    @Mapping(target = "receiverAccount.id", source = "receiverAccountId")
+    @Mapping(target = "receiverAccount", ignore = true) // résolu par le service depuis receiverEmail
     Transaction toEntity(TransactionCreateDTO dto);
 
 }

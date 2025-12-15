@@ -5,7 +5,7 @@ import com.alcaniz.paymybuddy.web.dto.user.UserCreateDTO;
 import com.alcaniz.paymybuddy.web.dto.user.UserDTO;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.ObjectFactory;
+
 
 
 @Mapper(config = MapstructConfig.class)

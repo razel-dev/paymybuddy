@@ -3,6 +3,7 @@ package com.alcaniz.paymybuddy.service.crud.impl;
 import com.alcaniz.paymybuddy.model.User;
 import com.alcaniz.paymybuddy.model.UserConnection;
 
+import com.alcaniz.paymybuddy.model.UserConnectionId;
 import com.alcaniz.paymybuddy.repository.UserConnectionRepository;
 import com.alcaniz.paymybuddy.repository.UserRepository;
 import com.alcaniz.paymybuddy.service.crud.ConnectionService;
@@ -16,7 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
+
 import java.util.List;
 
 @Service
@@ -60,7 +61,7 @@ public class ConnectionServiceImpl implements ConnectionService {
         UserConnection toSave = userConnectionMapper.toEntity(dto);
         toSave.setOwner(owner);
         toSave.setRelated(related);
-
+        toSave.setId(new UserConnectionId(ownerId, relatedId));
         UserConnection saved = userConnectionRepository.save(toSave);
         log.info("Connexion créée ownerId={} relatedId={}", ownerId, relatedId);
         return userConnectionMapper.toDto(saved);

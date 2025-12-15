@@ -7,6 +7,7 @@ public record TransactionDTO(
         Integer id,
         Integer senderAccountId,
         Integer receiverAccountId,
+        String receiverEmail,
         String description,
         BigDecimal amount,
         BigDecimal fee,

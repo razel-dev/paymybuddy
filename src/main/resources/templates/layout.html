@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr" data-theme="light"
       xmlns:th="http://www.thymeleaf.org"
-      th:fragment="layout(content, pageTitle)">
+      th:fragment="layout(content, pageTitle, showHeader, showTitle, showFooter, bgClass)">
 <head>
     <meta charset="UTF-8">
     <title th:text="${pageTitle} ?: 'PayMyBuddy'">PayMyBuddy</title>
@@ -9,8 +9,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
-<body>
-<header role="banner">
+<body class="min-vh-100" th:classappend="${bgClass} ?: ''">
+<header role="banner" th:if="${showHeader} ?: true">
     <nav aria-label="Navigation principale">
         <a th:href="@{/}">Tableau de bord</a> |
         <a th:href="@{/accounts}">Comptes</a> |
@@ -23,13 +23,13 @@
 </header>
 
 <main id="content" role="main" tabindex="-1" class="container">
-    <h1 th:text="${pageTitle} ?: 'PayMyBuddy'">PayMyBuddy</h1>
-
+    <h1 th:if="${showTitle} ?: true"
+        th:text="${pageTitle} ?: 'PayMyBuddy'">PayMyBuddy</h1>
 
     <div th:insert="${content}"></div>
 </main>
 
-<footer role="contentinfo" class="footer">
+<footer role="contentinfo" class="footer" th:if="${showFooter} ?: true">
     <small>&copy; PayMyBuddy - Prototype</small>
 </footer>
 </body>

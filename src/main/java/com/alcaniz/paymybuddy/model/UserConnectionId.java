@@ -10,6 +10,7 @@ import java.io.Serializable;
 @Setter // génére automatiqment des methodes set/get pour les champs mais
        // n'influence pas le comportement de persistance d'ou implement serializable
 @NoArgsConstructor
+@AllArgsConstructor
 @EqualsAndHashCode
 @Embeddable // @Embeddable utilisé comme ID (EmbeddedId/IdClass) => Serializable requis.
            // exigence jpa pour que le transport/stockage fonctionne correctement.

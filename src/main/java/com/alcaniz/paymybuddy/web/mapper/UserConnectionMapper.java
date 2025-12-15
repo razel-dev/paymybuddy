@@ -14,6 +14,7 @@ public interface UserConnectionMapper {
     // Entity -> DTO de sortie (API)
     @Mapping(source = "owner.id", target = "ownerUserId")
     @Mapping(source = "related.id", target = "relatedUserId")
+    @Mapping(source = "related", target = "relatedUser")
     ConnectionDTO toDto(UserConnection entity);
 
     // DTO d’entrée -> Entity
