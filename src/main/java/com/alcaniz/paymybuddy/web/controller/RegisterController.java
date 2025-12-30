@@ -3,6 +3,8 @@ package com.alcaniz.paymybuddy.web.controller;
 
 import com.alcaniz.paymybuddy.service.crud.UserService;
 import com.alcaniz.paymybuddy.web.dto.user.UserCreateDTO;
+import com.alcaniz.paymybuddy.web.exception.BadRequestException;
+import com.alcaniz.paymybuddy.web.exception.BusinessException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -28,14 +30,22 @@ public class RegisterController {
 
     @PostMapping("/register")
     public String submit(@Valid @ModelAttribute("form") UserCreateDTO form,
-                         BindingResult binding) {
+                         BindingResult binding,
+                         Model model) {
         if (binding.hasErrors()) {
             return "register";
         }
-        // Crée l'utilisateur; les validations métier et l'encodage du mot de passe
-        // sont gérés dans UserService.
-        userService.create(form);
-        // Redirige vers /login avec un indicateur de succès
+        try {
+            userService.create(form);
+        } catch (BadRequestException e) {
+            // Erreurs de validation côté service (ex. champs vides)
+            binding.reject("bad_request", e.getMessage());
+            return "register";
+        } catch (BusinessException e) {
+            // Erreurs métier (ex. email déjà utilisé)
+            binding.reject("business_error", e.getMessage());
+            return "register";
+        }
         return "redirect:/login?registered";
     }
 }

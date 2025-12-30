@@ -15,6 +15,8 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import java.security.Principal;
 import java.util.List;
+import com.alcaniz.paymybuddy.web.exception.BusinessException;
+import com.alcaniz.paymybuddy.web.exception.BadRequestException;
 
 @Controller
 @RequiredArgsConstructor
@@ -48,11 +50,22 @@ public class BankTransferController {
         List<AccountDTO> accounts = accountService.getAllForUser(userId);
         if (bindingResult.hasErrors()) {
             model.addAttribute("accounts", accounts);
-            model.addAttribute("history", accounts.isEmpty() ? java.util.List.of()
-                    : bankTransferService.getHistoryForAccount(accounts.getFirst().id()));
+            Integer selectedAccountId = form.accountId();
+            model.addAttribute("history", (selectedAccountId == null) ? java.util.List.of()
+                    : bankTransferService.getHistoryForAccount(selectedAccountId));
             return "bank";
         }
-        bankTransferService.create(form);
+        try {
+            bankTransferService.create(form);
+        } catch (BusinessException | BadRequestException ex) {
+            // Erreur métier/validation côté service => on reste sur la page avec un message
+            bindingResult.reject("bankTransfer.error", ex.getMessage());
+            model.addAttribute("accounts", accounts);
+            Integer selectedAccountId = form.accountId();
+            model.addAttribute("history", (selectedAccountId == null) ? java.util.List.of()
+                    : bankTransferService.getHistoryForAccount(selectedAccountId));
+            return "bank";
+        }
         return "redirect:/bank";
     }
 

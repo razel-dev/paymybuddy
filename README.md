@@ -28,7 +28,7 @@ Application Spring Boot (Java 21) pour la gestion d’utilisateurs, comptes, con
 - Persistance: Spring Data JPA (Jakarta) + Hibernate.
 - Base: MySQL (locale ou Docker), schéma versionné avec Flyway.
 - Validation: Jakarta Validation.
-- Tests d’intégration: MySQL éphémère via Testcontainers.
+- Tests d’intégration : MySQL éphémère via Testcontainers.
 
 Flux serveur:
 Controller (Spring MVC) -> Services -> Repositories -> JPA/Hibernate -> MySQL -> Vues Thymeleaf.
@@ -73,7 +73,7 @@ Pas de doc OpenAPI/Swagger car absence d’API REST en V1
 
 2) Variables d’environnement (facultatives):
 - DB_USERNAME et DB_PASSWORD (par défaut: paymybuddy/paymybuddy)
-- ou override complet via SPRING_DATASOURCE_URL/USERNAME/PASSWORD
+
 
 3) Lancer l’application:
 - mvn spring-boot:run

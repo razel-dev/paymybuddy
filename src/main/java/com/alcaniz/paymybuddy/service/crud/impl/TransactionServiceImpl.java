@@ -33,6 +33,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final TransactionMapper transactionMapper;
 
     @Override
+    @Transactional
     public TransactionDTO create(TransactionCreateDTO dto) {
         // 1) Vérifier/charger le compte émetteur
         var sender = accountRepository.findById(dto.senderAccountId())
@@ -51,11 +52,29 @@ public class TransactionServiceImpl implements TransactionService {
         entity.setSenderAccount(sender);
         entity.setReceiverAccount(receiver);
 
-        // 5) Appliquer la logique de frais / soldes (inchangée si déjà présente)
-        //    Exemple indicatif si votre code ne l'a pas déjà fait avant le save:
-        // BigDecimal fee = feePolicy.compute(dto.amount());
-        // entity.setFee(fee);
-        // balanceService.applyTransfer(sender, receiver, dto.amount(), fee);
+        // 5) Calcul des frais et mise à jour des soldes
+        var amount = dto.amount().setScale(2, RoundingMode.HALF_UP);
+        var fee = calculateFee(amount);
+        var totalDebit = amount.add(fee);
+
+        var senderBalance = sender.getBalance() == null ? BigDecimal.ZERO : sender.getBalance();
+        if (senderBalance.compareTo(totalDebit) < 0) {
+            throw new IllegalArgumentException("Solde insuffisant pour effectuer le virement");
+        }
+
+        // Débit émetteur (montant + frais) et crédit destinataire (montant)
+        sender.setBalance(senderBalance.subtract(totalDebit));
+        var receiverBalance = receiver.getBalance() == null ? BigDecimal.ZERO : receiver.getBalance();
+        receiver.setBalance(receiverBalance.add(amount));
+
+        // Persister les soldes (dirty checking suffirait, mais on peut expliciter)
+        accountRepository.save(sender);
+        accountRepository.save(receiver);
+
+        // Renseigner les frais pour respecter la contrainte NOT NULL en base
+        entity.setFee(fee);
+        // Si nécessaire selon votre entité:
+        // entity.setAmount(amount);
 
         // 6) Persister et retourner le DTO
         var saved = transactionRepository.save(entity);

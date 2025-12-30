@@ -1,7 +1,6 @@
 package com.alcaniz.paymybuddy.service.crud;
 
-import com.alcaniz.paymybuddy.model.BankTransfer;
-import com.alcaniz.paymybuddy.web.dto.banktransfer.BankTransferCreateDTO;
+
 import com.alcaniz.paymybuddy.web.dto.transaction.TransactionCreateDTO;
 import com.alcaniz.paymybuddy.web.dto.transaction.TransactionDTO;
 import jakarta.validation.Valid;
