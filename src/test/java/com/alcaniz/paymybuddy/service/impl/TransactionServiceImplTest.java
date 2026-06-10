@@ -5,6 +5,7 @@ import com.alcaniz.paymybuddy.model.Transaction;
 import com.alcaniz.paymybuddy.model.User;
 import com.alcaniz.paymybuddy.repository.AccountRepository;
 import com.alcaniz.paymybuddy.repository.TransactionRepository;
+import com.alcaniz.paymybuddy.repository.UserConnectionRepository;
 import com.alcaniz.paymybuddy.web.dto.transaction.TransactionCreateDTO;
 import com.alcaniz.paymybuddy.web.dto.transaction.TransactionDTO;
 import com.alcaniz.paymybuddy.web.mapper.TransactionMapper;
@@ -38,21 +39,25 @@ class TransactionServiceImplTest {
     AccountRepository accountRepository;
 
     @Mock
+    UserConnectionRepository userConnectionRepository;
+
+    @Mock
     TransactionMapper transactionMapper;
 
     @InjectMocks
     com.alcaniz.paymybuddy.service.crud.impl.TransactionServiceImpl service;
 
-    private static Account acc(int id, String email, String balance, String currency) {
+    private static Account acc(int accountId, int userId, String email, String balance, String currency) {
         User user = new User();
+        user.setId(userId);
         user.setEmail(email);
 
         Account account = new Account();
         account.setUser(user);
-        account.setAccountName("acc-" + id);
+        account.setAccountName("acc-" + accountId);
         account.setCurrency(currency);
         account.setBalance(new BigDecimal(balance));
-        account.setId(id);
+        account.setId(accountId);
         return account;
     }
 
@@ -66,13 +71,29 @@ class TransactionServiceImplTest {
     }
 
     @Test
+    void create_rejetteDestinataireNonBuddy() {
+        var dto = new TransactionCreateDTO(1, "mallory@example.com", new BigDecimal("25.00"), "x");
+        var sender = acc(1, 101, "alice@example.com", "200.00", "EUR");
+        var receiver = acc(2, 202, "mallory@example.com", "10.00", "EUR");
+
+        when(accountRepository.findById(1)).thenReturn(Optional.of(sender));
+        when(accountRepository.findFirstByUser_EmailOrderByIdAsc("mallory@example.com")).thenReturn(Optional.of(receiver));
+        when(userConnectionRepository.existsByOwner_IdAndRelated_Id(101, 202)).thenReturn(false);
+
+        assertThrows(IllegalArgumentException.class, () -> service.create(dto));
+        verify(transactionRepository, never()).save(any(Transaction.class));
+        verify(accountRepository, never()).save(any(Account.class));
+    }
+
+    @Test
     void create_soldeInsuffisant_lanceErreurEtPasDeSave() {
         var dto = new TransactionCreateDTO(1, "bob@example.com", new BigDecimal("50.00"), "x");
-        var sender = acc(1, "alice@example.com", "50.00", "EUR");
-        var receiver = acc(2, "bob@example.com", "0.00", "EUR");
+        var sender = acc(1, 101, "alice@example.com", "50.00", "EUR");
+        var receiver = acc(2, 202, "bob@example.com", "0.00", "EUR");
 
         when(accountRepository.findById(1)).thenReturn(Optional.of(sender));
         when(accountRepository.findFirstByUser_EmailOrderByIdAsc("bob@example.com")).thenReturn(Optional.of(receiver));
+        when(userConnectionRepository.existsByOwner_IdAndRelated_Id(101, 202)).thenReturn(true);
         when(transactionMapper.toEntity(dto)).thenReturn(baseTxForMapper(dto.amount()));
 
         assertThrows(IllegalArgumentException.class, () -> service.create(dto));
@@ -85,11 +106,12 @@ class TransactionServiceImplTest {
     @Test
     void create_happyPath_calculeFrais_metAJourSoldes_etMappeDto() {
         var dto = new TransactionCreateDTO(1, "bob@example.com", new BigDecimal("100.00"), "desc");
-        var sender = acc(1, "alice@example.com", "200.00", "EUR");
-        var receiver = acc(2, "bob@example.com", "10.00", "EUR");
+        var sender = acc(1, 101, "alice@example.com", "200.00", "EUR");
+        var receiver = acc(2, 202, "bob@example.com", "10.00", "EUR");
 
         when(accountRepository.findById(1)).thenReturn(Optional.of(sender));
         when(accountRepository.findFirstByUser_EmailOrderByIdAsc("bob@example.com")).thenReturn(Optional.of(receiver));
+        when(userConnectionRepository.existsByOwner_IdAndRelated_Id(101, 202)).thenReturn(true);
 
         Transaction base = baseTxForMapper(dto.amount());
         when(transactionMapper.toEntity(dto)).thenReturn(base);
