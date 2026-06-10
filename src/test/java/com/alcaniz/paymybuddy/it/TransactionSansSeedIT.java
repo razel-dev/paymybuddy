@@ -62,7 +62,7 @@ class TransactionSansSeedIT {
     accBob = accountRepository.save(accBob);
 
     // 2) Act: exécuter un transfert via le service (ex: 100.00 avec frais 0,5% = 0,50)
-    var dto = new TransactionCreateDTO(accAlice.getId(), accBob.getId(), new BigDecimal("100.00"), "test");
+    var dto = new TransactionCreateDTO(accAlice.getId(), bob.getEmail(), new BigDecimal("100.00"), "test");
     var result = transactionService.create(dto);
 
     // 3) Assert: vérifier frais calculés et soldes mis à jour côté base

@@ -37,7 +37,7 @@ class TransactionAvecSeedIT {
         var bobAccount   = accountRepository.findById(1001).orElseThrow(); // Bob  à 50.00
 
         // 2) Act: exécuter un transfert de 10.00 (frais 0,5% = 0,05 si ta règle est proportionnelle)
-        var dto = new TransactionCreateDTO(aliceAccount.getId(), bobAccount.getId(), new BigDecimal("10.00"), "seed run");
+        var dto = new TransactionCreateDTO(aliceAccount.getId(), bobAccount.getUser().getEmail(), new BigDecimal("10.00"), "seed run");
         var result = transactionService.create(dto);
 
         // 3) Assert: vérifier frais et nouveaux soldes
