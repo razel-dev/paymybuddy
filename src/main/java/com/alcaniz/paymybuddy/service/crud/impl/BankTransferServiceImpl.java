@@ -49,7 +49,7 @@ public class BankTransferServiceImpl implements com.alcaniz.paymybuddy.service.c
             throw new BadRequestException("Le type de virement est obligatoire.");
         }
 
-        Account account = accountRepository.findById(accountId)
+        Account account = accountRepository.findByIdForUpdate(accountId)
                 .orElseThrow(() -> new BadRequestException("Compte introuvable: id=" + accountId));
 
         // Application de la logique métier sur le solde

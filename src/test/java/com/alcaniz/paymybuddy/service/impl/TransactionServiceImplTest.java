@@ -76,8 +76,8 @@ class TransactionServiceImplTest {
         var sender = acc(1, 101, "alice@example.com", "200.00", "EUR");
         var receiver = acc(2, 202, "mallory@example.com", "10.00", "EUR");
 
-        when(accountRepository.findById(1)).thenReturn(Optional.of(sender));
-        when(accountRepository.findFirstByUser_EmailOrderByIdAsc("mallory@example.com")).thenReturn(Optional.of(receiver));
+        when(accountRepository.findByIdForUpdate(1)).thenReturn(Optional.of(sender));
+        when(accountRepository.findFirstByUser_EmailOrderByIdAscForUpdate("mallory@example.com")).thenReturn(Optional.of(receiver));
         when(userConnectionRepository.existsByOwner_IdAndRelated_Id(101, 202)).thenReturn(false);
 
         assertThrows(IllegalArgumentException.class, () -> service.create(dto));
@@ -91,8 +91,8 @@ class TransactionServiceImplTest {
         var sender = acc(1, 101, "alice@example.com", "50.00", "EUR");
         var receiver = acc(2, 202, "bob@example.com", "0.00", "EUR");
 
-        when(accountRepository.findById(1)).thenReturn(Optional.of(sender));
-        when(accountRepository.findFirstByUser_EmailOrderByIdAsc("bob@example.com")).thenReturn(Optional.of(receiver));
+        when(accountRepository.findByIdForUpdate(1)).thenReturn(Optional.of(sender));
+        when(accountRepository.findFirstByUser_EmailOrderByIdAscForUpdate("bob@example.com")).thenReturn(Optional.of(receiver));
         when(userConnectionRepository.existsByOwner_IdAndRelated_Id(101, 202)).thenReturn(true);
         when(transactionMapper.toEntity(dto)).thenReturn(baseTxForMapper(dto.amount()));
 
@@ -109,8 +109,8 @@ class TransactionServiceImplTest {
         var sender = acc(1, 101, "alice@example.com", "200.00", "EUR");
         var receiver = acc(2, 202, "bob@example.com", "10.00", "EUR");
 
-        when(accountRepository.findById(1)).thenReturn(Optional.of(sender));
-        when(accountRepository.findFirstByUser_EmailOrderByIdAsc("bob@example.com")).thenReturn(Optional.of(receiver));
+        when(accountRepository.findByIdForUpdate(1)).thenReturn(Optional.of(sender));
+        when(accountRepository.findFirstByUser_EmailOrderByIdAscForUpdate("bob@example.com")).thenReturn(Optional.of(receiver));
         when(userConnectionRepository.existsByOwner_IdAndRelated_Id(101, 202)).thenReturn(true);
 
         Transaction base = baseTxForMapper(dto.amount());

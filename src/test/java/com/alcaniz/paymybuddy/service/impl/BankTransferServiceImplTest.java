@@ -59,7 +59,7 @@ class BankTransferServiceImplTest {
         //  DEPOSIT -> solde += amount, virement persistant.
         var dto = new BankTransferCreateDTO(1, new BigDecimal("50.00"), BankTransferCreateDTO.BankTransferType.DEPOSIT);
         var acc = accountWithBalance(1, "10.00");
-        when(accountRepository.findById(1)).thenReturn(Optional.of(acc));
+        when(accountRepository.findByIdForUpdate(1)).thenReturn(Optional.of(acc));
 
         var mapped = new BankTransfer();
         mapped.setAccount(dummyAccount());

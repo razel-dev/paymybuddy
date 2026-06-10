@@ -76,7 +76,7 @@ class ConcurrentBankTransferIT {
                 assertTrue(bothReadsReached.await(5, TimeUnit.SECONDS));
             }
             return result;
-        }).when(accountRepository).findById(accountId);
+        }).when(accountRepository).findByIdForUpdate(accountId);
 
         ExecutorService executor = Executors.newFixedThreadPool(2);
         try {

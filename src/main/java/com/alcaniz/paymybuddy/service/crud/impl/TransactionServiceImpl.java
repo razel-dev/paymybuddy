@@ -35,7 +35,7 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     @Transactional
     public TransactionDTO create(TransactionCreateDTO dto) {
-        var sender = accountRepository.findById(dto.senderAccountId())
+        var sender = accountRepository.findByIdForUpdate(dto.senderAccountId())
                 .orElseThrow(() -> new IllegalArgumentException("Compte emetteur introuvable: " + dto.senderAccountId()));
 
         var receiver = resolveReceiverAccountByEmail(dto.receiverEmail());
@@ -79,7 +79,7 @@ public class TransactionServiceImpl implements TransactionService {
             throw new IllegalArgumentException("L'email du destinataire est requis");
         }
 
-        return accountRepository.findFirstByUser_EmailOrderByIdAsc(email)
+        return accountRepository.findFirstByUser_EmailOrderByIdAscForUpdate(email)
                 .orElseThrow(() -> new IllegalArgumentException("Aucun compte trouve pour l'email: " + email));
     }
 
