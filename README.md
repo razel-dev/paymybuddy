@@ -1,206 +1,228 @@
-# PayMyBuddy — Backend (MVC + Thymeleaf)
+# PayMyBuddy Fintech Backend
 
-Application Spring Boot (Java 21) pour la gestion d’utilisateurs, comptes, connexions entre utilisateurs (buddies), transactions entre utilisateurs et virements bancaires, rendue côté serveur via des contrôleurs Spring MVC et des vues Thymeleaf. Persistance MySQL, migrations Flyway, tests d’intégration avec Testcontainers (MySQL).
+Spring Boot server-side web application for user management, account handling, peer-to-peer transfers, and bank deposit/withdrawal operations.
 
-## Sommaire
-- Aperçu
-- Architecture
-- Pile technologique
-- Prérequis
-- Démarrage rapide
-- Configuration
-- Base de données et migrations
-- Profils et données de démo
-- Navigation et pages
-- Gestion des erreurs
-- Sécurité
-- Tests (MySQL via Docker/Testcontainers)
-- Packaging et déploiement
-- Docker (run local)
-- Points d’extension
-- Commandes utiles
-- Dépannage
-- Licence
+This project showcases a business-oriented Java backend with Spring MVC, Thymeleaf, Spring Security, JPA/Hibernate, MySQL, Flyway, DTO mapping with MapStruct, and integration testing with Testcontainers.
 
-## Aperçu
+## Why this project stands out
 
-- Rendu côté serveur: Spring MVC + Thymeleaf.
-- Persistance: Spring Data JPA (Jakarta) + Hibernate.
-- Base: MySQL (locale ou Docker), schéma versionné avec Flyway.
-- Validation: Jakarta Validation.
-- Tests d’intégration : MySQL éphémère via Testcontainers.
+This repository demonstrates:
 
-Flux serveur:
-Controller (Spring MVC) -> Services -> Repositories -> JPA/Hibernate -> MySQL -> Vues Thymeleaf.
+- a clean layered Spring Boot architecture
+- a business-focused financial domain
+- server-side rendering with Spring MVC and Thymeleaf
+- authentication and protected user flows with Spring Security
+- relational persistence with MySQL and schema versioning with Flyway
+- DTO-driven web layer with MapStruct
+- integration tests backed by ephemeral MySQL containers through Testcontainers
+
+## Functional scope
+
+The application covers the following use cases:
+
+- user registration and login
+- account creation and account listing
+- user-to-user connections
+- peer-to-peer transfers between users
+- bank deposit and withdrawal operations
+- account activity history visualization
+
+## Application flow
+
+```text
+Browser -> Spring MVC Controllers -> Services -> Repositories -> JPA/Hibernate -> MySQL
+                                               -> Thymeleaf views
+```
+
+This is a server-side rendered application: controllers prepare the data, services apply business rules, repositories access the database, and Thymeleaf renders the final HTML views.
+
+## Main business domains
+
+### Users
+
+The application manages user registration, authentication, and profile retrieval.
+
+### Accounts
+
+Each user can own one or more accounts used for transaction and bank transfer flows.
+
+### Connections
+
+Users can add trusted connections ("buddies") and use them as recipients in peer-to-peer transfers.
+
+### Transactions
+
+The application supports money transfers between user accounts with business validation.
+
+### Bank transfers
+
+The application also supports deposit and withdrawal operations between an account and the bank side.
 
 ## Architecture
 
-- model: entités JPA (utilisateurs, comptes, transactions, virements, connexions)
-- repository: interfaces Spring Data JPA
-- service/crud (+ impl): logique métier, transactions
-- web:
-  - controller: contrôleurs MVC (retournent des noms de templates Thymeleaf)
-  - dto: DTO de formulaires et de vues
-  - mapper: mappers DTO <-> entités (MapStruct)
-  - exception: gestion des erreurs
-- security: composants de sécurité (authentification/autorisation)
-- infra: configuration, initialisation (données de démo)
+The codebase follows a layered structure:
 
-## Pile technologique
+- `model`
+  JPA entities representing users, accounts, transfers, transactions, and connections
+- `repository`
+  Spring Data JPA repositories
+- `service`
+  business logic and transaction orchestration
+- `web/controller`
+  MVC controllers handling pages and form submissions
+- `web/dto`
+  DTOs used by the web layer
+- `web/mapper`
+  mappings between DTOs and entities using MapStruct
+- `security`
+  authentication and access control configuration
+- `infra`
+  startup and demo data initialization
+
+## Security
+
+The application uses Spring Security with a classic server-side login flow.
+
+It protects business pages and keeps authentication integrated directly in the MVC application.
+
+Security responsibilities include:
+
+- access protection for authenticated pages
+- custom login page handling
+- password encoding with BCrypt
+
+## Persistence
+
+### MySQL
+
+MySQL is used because the domain is strongly relational:
+
+- users
+- accounts
+- transfers
+- connections
+- transaction history
+
+This fits well with a structured financial domain where consistency and explicit schema evolution matter.
+
+### Flyway
+
+The relational schema is versioned with Flyway, which ensures controlled database evolution and avoids schema drift.
+
+## Testing
+
+The project includes:
+
+- unit tests on service logic
+- integration tests using Testcontainers with ephemeral MySQL
+
+This is a strong point of the repository because it validates persistence behavior in a realistic environment instead of relying only on mocks.
+
+## Tech stack
 
 - Java 21
-- Spring Boot 3.5.x (Web/MVC, Validation, Data JPA, Security, Thymeleaf)
-- Hibernate (Jakarta Persistence)
-- MySQL (runtime) + Flyway (migrations)
-- Lombok (réduction du boilerplate)
-- MapStruct (mappers compile-time)
-- Testcontainers (MySQL pour tests d’intégration)
-- Build: Maven
+- Spring Boot 3.5
+- Spring MVC
+- Thymeleaf
+- Spring Security
+- Spring Data JPA / Hibernate
+- MySQL
+- Flyway
+- Lombok
+- MapStruct
+- Testcontainers
+- Maven
 
-Pas de doc OpenAPI/Swagger car absence d’API REST en V1
+## Local run
 
-## Prérequis
+### Prerequisites
 
-- JDK 21
+- Java 21
 - Maven 3.9+
-- MySQL local (ou Docker)
-- Docker en fonctionnement pour exécuter les tests d’intégration (Testcontainers)
+- Docker running locally for integration tests
+- MySQL locally, or MySQL in Docker
 
-## Démarrage rapide
+### Application startup
 
-1) Créer la base:
-- CREATE DATABASE paymybuddy CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```bash
+mvn spring-boot:run
+```
 
-2) Variables d’environnement (facultatives):
-- DB_USERNAME et DB_PASSWORD (par défaut: paymybuddy/paymybuddy)
+Default local URL:
 
+- `http://localhost:8080`
 
-3) Lancer l’application:
-- mvn spring-boot:run
-- Ouvrir le navigateur sur http://localhost:8080 et naviguer via les pages Thymeleaf.
+### Database configuration
 
-## Configuration
+The application expects a MySQL database:
 
-- Datasource:
-  - jdbc:mysql://127.0.0.1:3306/paymybuddy
-  - username/password via variables d’environnement (avec valeurs par défaut)
-- JPA:
-  - spring.jpa.hibernate.ddl-auto=validate (schéma géré par Flyway)
-  - spring.jpa.open-in-view=false
-  - show-sql/format-sql activés pour le dev
-- Flyway:
-  - enabled=true
-  - locations=classpath:db/migration
-  - baseline-on-migrate=true (utile si base déjà existante non versionnée)
-- Thymeleaf:
-  - templates sous classpath:/templates/
+- URL: `jdbc:mysql://127.0.0.1:3306/paymybuddy`
+- username: `paymybuddy` by default
+- password: `paymybuddy` by default
 
-## Base de données et migrations
+These values can be overridden with environment variables:
 
-- Migrations Flyway (Vx__*.sql) exécutées au démarrage.
-- ddl-auto=validate empêche les dérives de schéma: corriger via migrations.
+- `DB_USERNAME`
+- `DB_PASSWORD`
 
-## Profils et données de démo
+### Demo profile
 
-- Profil demo:
-  - mvn spring-boot:run -Dspring-boot.run.profiles=demo.
-  - Crée des utilisateurs de démonstration.
+A demo profile is available to preload sample users and accounts:
 
-## Navigation et pages
+```bash
+mvn spring-boot:run -Dspring-boot.run.profiles=demo
+```
 
-L’application suit un modèle MVC classique. Exemples de routes/pages:
-- Comptes:
-  - GET /accounts — liste des comptes de l’utilisateur courant, formulaire de création
-  - POST /accounts — création d’un compte (formulaire Thymeleaf)
-  - POST /accounts/{id}/delete — suppression d’un compte puis redirection
-- Transferts:
-  - GET /transfer — formulaire de virement entre comptes + historique du compte sélectionné
-  - POST /transfer — soumission du virement puis redirection
-- Connexions (buddies):
-  - GET /connections — liste des connexions + formulaire d’ajout par e-mail
-  - POST /connections — ajout d’une connexion, messages d’erreur/info rendus dans la page
+## Tests
 
-Les contrôleurs utilisent Principal pour récupérer l’utilisateur courant, puis injectent les DTO et messages de validation dans le modèle.
+Run all tests:
 
-## Gestion des erreurs
+```bash
+mvn test
+```
 
-- Format Problem Details activé pour les erreurs HTTP.
-- Les erreurs de validation sont renvoyées aux vues Thymeleaf pour affichage.
+Run full verification:
 
-## Sécurité
+```bash
+mvn clean verify
+```
 
-- Base Security Spring activée.
-- Rate limiting basique configurable (nombre max de requêtes / fenêtre).
-- Authentification/autorisation à adapter selon besoins.
+Integration tests start an ephemeral MySQL container automatically through Testcontainers.
 
-## Tests (MySQL via Docker/Testcontainers)
+## Repository structure
 
-- Lancer:
-  - mvn test
-- Ce qui se passe:
-  - Un conteneur MySQL éphémère est démarré automatiquement par Testcontainers.
-  - Le datasource de test est injecté sans configuration manuelle.
-- Rapports:
-  - target/surefire-reports
+```text
+src/main/java/com/alcaniz/paymybuddy/
+  infra/
+  model/
+  repository/
+  security/
+  service/
+  web/
 
-Dépannage tests:
-- Docker doit être démarré; sinon les tests d’intégration échouent.
-- Pour n’exécuter que des tests unitaires, utilisez un profil Maven/filtrage de classes.
+src/main/resources/
+  db/migration/
+  templates/
+```
 
-## Packaging et déploiement
+## What this project demonstrates
 
-- Build:
-  - mvn clean package
-  - Jar: target/paymybuddy-<version>.jar
-- Exécution:
-  - java -jar target/paymybuddy-<version>.jar
-- Variables utiles:
-  - SPRING_PROFILES_ACTIVE
-  - DB_USERNAME / DB_PASSWORD
-  - SPRING_DATASOURCE_URL / USERNAME / PASSWORD
+Beyond simple CRUD, this project demonstrates:
 
-## Docker (run local)
+- business-oriented backend design
+- financial-domain modeling
+- transactional service logic
+- secure MVC application design
+- schema versioning discipline
+- realistic database testing with Testcontainers
 
-Exécuter un MySQL local:
-- docker run --name mysql8-paymybuddy -e MYSQL_DATABASE=paymybuddy -e MYSQL_USER=paymybuddy -e MYSQL_PASSWORD=paymybuddy -e MYSQL_ROOT_PASSWORD=root -p 3306:3306 -d mysql:8.4
+## Possible next improvements
 
-L’application utilisera 127.0.0.1:3306/paymybuddy avec les identifiants fournis.
+- add Docker Compose for the full local runtime stack
+- strengthen observability with Actuator and metrics
+- document the core business rules more explicitly in the README
+- add CI if the repository becomes a main portfolio project
 
-## Points d’extension
+## Author
 
-- Vues:
-  - Ajouter des templates Thymeleaf sous templates/
-- Contrôleurs:
-  - Ajouter de nouvelles routes/pages
-- Services/Repositories:
-  - Étendre la logique métier et les requêtes
-- Sécurité:
-  - Brancher votre stratégie (form login, JWT pour APIs internes futures, etc.)
-- Observabilité:
-  - Ajouter Actuator/metrics/logging avancé si nécessaire
-
-## Commandes utiles
-
-- Lancer en dev:
-  - mvn spring-boot:run
-- Build + tests:
-  - mvn clean verify
-
-## Dépannage
-
-- Erreurs Flyway (checksum/out-of-order)
-    - Ne modifie jamais une migration déjà appliquée: crée une nouvelle (Vx+1).
-    - Vérifie l’ordre/numérotation des scripts dans db/migration.
-    - Base existante non versionnée: active baseline-on-migrate=true (avec prudence).
-
-- ddl-auto=validate échoue
-    - Le schéma ne correspond pas aux entités JPA.
-    - Ajoute une migration Vx+1 pour aligner la base (ou recrée la base en dev).
-
-- Connexion MySQL
-    - Vérifie l’URL JDBC, l’utilisateur/mot de passe et que MySQL écoute bien sur le port prévu.
-
-- Docker non lancé (tests)
-    - Démarre Docker avant mvn test.
-
-
+Built as part of my Java backend training and kept as a portfolio project to showcase business-oriented backend development, with a particular interest in financial use cases, secure application design, and strong service-layer architecture.

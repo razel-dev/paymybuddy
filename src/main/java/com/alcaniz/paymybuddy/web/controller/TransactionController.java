@@ -1,4 +1,4 @@
-// Java
+
 package com.alcaniz.paymybuddy.web.controller;
 
 import com.alcaniz.paymybuddy.service.crud.AccountService;
@@ -46,11 +46,20 @@ public class TransactionController {
         List<AccountDTO> accounts = accountService.getAllForUser(userId);
         if (bindingResult.hasErrors()) {
             model.addAttribute("accounts", accounts);
-            model.addAttribute("history", accounts.isEmpty() ? java.util.List.of()
-                    : transactionService.getHistoryForAccount(accounts.getFirst().id()));
+            model.addAttribute("history", (form.senderAccountId() == null) ? java.util.List.of()
+                    : transactionService.getHistoryForAccount(form.senderAccountId()));
             return "transfer";
         }
-        transactionService.create(form);
+        try {
+            transactionService.create(form);
+        } catch (IllegalArgumentException ex) {
+            // on revient au formulaire si l'opération n'est pas possible
+            bindingResult.reject("transfer.error", ex.getMessage());
+            model.addAttribute("accounts", accounts);
+            model.addAttribute("history", (form.senderAccountId() == null) ? java.util.List.of()
+                    : transactionService.getHistoryForAccount(form.senderAccountId()));
+            return "transfer";
+        }
         return "redirect:/transfer";
     }
 

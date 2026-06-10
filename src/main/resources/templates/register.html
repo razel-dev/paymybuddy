@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+
+<body class="d-flex justify-content-center align-items-center min-vh-100">
+<main class="container">
+    <section class="card p-4" style="max-width: 400px; margin: auto;">
+        <div class="card-header text-center">
+            <h3>Pay My Buddy</h3>
+        </div>
+        <div class="card-body">
+            <form th:action="@{/register}" th:object="${form}" method="post" class="needs-validation">
+                <ul th:if="${#fields.hasGlobalErrors()}" class="alert alert-danger list-unstyled" role="alert" aria-live="polite">
+                    <li><strong>Erreurs générales du formulaire :</strong></li>
+                    <li th:each="error : ${#fields.globalErrors()}" th:text="${error}">Une erreur est survenue</li>
+                </ul>
+                <!-- Champ username: suppression des id/for hardcodés, usage th:for + th:field -->
+                <div class="mb-3">
+                    <label class="form-label" th:for="*{username}">Username</label>
+                    <input type="text" th:field="*{username}"
+                           class="form-control"
+                           th:classappend="${#fields.hasErrors('username')} ? ' is-invalid' : ''"
+                           placeholder="Username" required autocomplete="username">
+                    <div class="invalid-feedback d-block" th:errors="*{username}">Erreur sur le nom d'utilisateur</div>
+                </div>
+
+                <!-- Champ email -->
+                <div class="mb-3">
+                    <label class="form-label" th:for="*{email}">Mail</label>
+                    <input type="email" th:field="*{email}"
+                           class="form-control"
+                           th:classappend="${#fields.hasErrors('email')} ? ' is-invalid' : ''"
+                           placeholder="Mail" required autocomplete="email">
+                    <div class="invalid-feedback d-block" th:errors="*{email}">Erreur sur l'email</div>
+                </div>
+
+                <!-- Champ password: retrait du pattern pour éviter l’avertissement de validateur -->
+                <div class="mb-3">
+                    <label class="form-label" th:for="*{password}">Mot de passe</label>
+                    <input type="password" th:field="*{password}"
+                           class="form-control"
+                           th:classappend="${#fields.hasErrors('password')} ? ' is-invalid' : ''"
+                           placeholder="Mot de passe" required autocomplete="new-password"
+                           minlength="8">
+                    <div class="form-text">Au moins 8 caractères.</div>
+                    <div class="invalid-feedback d-block" th:errors="*{password}">Erreur sur le mot de passe</div>
+                </div>
+
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">S'inscrire</button>
+                </div>
+            </form>
+        </div>
+    </section>
+</main>
+</body>
+</html>

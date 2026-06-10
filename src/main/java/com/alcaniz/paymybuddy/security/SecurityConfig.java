@@ -14,7 +14,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // Par défaut: sessions stateful + CSRF activé (bien pour formulaires Thymeleaf)
+
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/login",
@@ -28,7 +28,7 @@ public class SecurityConfig {
             // Page de login personnalisée
             .formLogin(form -> form
                 .loginPage("/login")
-                .defaultSuccessUrl("/", true) // redirige sur le tableau de bord après connexion
+                .defaultSuccessUrl("/", true)
                 .permitAll()
             )
             .logout(Customizer.withDefaults());
