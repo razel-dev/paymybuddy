@@ -35,14 +35,25 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     @Transactional
     public TransactionDTO create(TransactionCreateDTO dto) {
-        var sender = accountRepository.findByIdForUpdate(dto.senderAccountId())
+        var senderPreview = accountRepository.findById(dto.senderAccountId())
                 .orElseThrow(() -> new IllegalArgumentException("Compte emetteur introuvable: " + dto.senderAccountId()));
 
-        var receiver = resolveReceiverAccountByEmail(dto.receiverEmail());
+        var receiverPreview = resolveReceiverAccountByEmail(dto.receiverEmail());
 
-        if (Objects.equals(sender.getId(), receiver.getId())) {
+        if (Objects.equals(senderPreview.getId(), receiverPreview.getId())) {
             throw new IllegalArgumentException("Le compte emetteur et le compte destinataire doivent etre differents");
         }
+
+        var lockedAccounts = accountRepository.findAllByIdInOrderByIdAsc(List.of(
+                senderPreview.getId(),
+                receiverPreview.getId()
+        ));
+        if (lockedAccounts.size() != 2) {
+            throw new IllegalArgumentException("Impossible de verrouiller les comptes du transfert");
+        }
+
+        Account sender = accountById(lockedAccounts, senderPreview.getId());
+        Account receiver = accountById(lockedAccounts, receiverPreview.getId());
 
         if (!isAuthorizedConnection(sender, receiver)) {
             throw new IllegalArgumentException("Le destinataire doit etre une connexion autorisee");
@@ -79,8 +90,15 @@ public class TransactionServiceImpl implements TransactionService {
             throw new IllegalArgumentException("L'email du destinataire est requis");
         }
 
-        return accountRepository.findFirstByUser_EmailOrderByIdAscForUpdate(email)
+        return accountRepository.findFirstByUser_EmailOrderByIdAsc(email)
                 .orElseThrow(() -> new IllegalArgumentException("Aucun compte trouve pour l'email: " + email));
+    }
+
+    private Account accountById(List<Account> accounts, Integer accountId) {
+        return accounts.stream()
+                .filter(account -> Objects.equals(account.getId(), accountId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Compte introuvable apres verrouillage: " + accountId));
     }
 
     private boolean isAuthorizedConnection(Account sender, Account receiver) {

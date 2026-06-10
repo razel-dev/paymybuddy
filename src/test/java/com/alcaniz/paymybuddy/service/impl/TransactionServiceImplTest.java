@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -76,8 +77,9 @@ class TransactionServiceImplTest {
         var sender = acc(1, 101, "alice@example.com", "200.00", "EUR");
         var receiver = acc(2, 202, "mallory@example.com", "10.00", "EUR");
 
-        when(accountRepository.findByIdForUpdate(1)).thenReturn(Optional.of(sender));
-        when(accountRepository.findFirstByUser_EmailOrderByIdAscForUpdate("mallory@example.com")).thenReturn(Optional.of(receiver));
+        when(accountRepository.findById(1)).thenReturn(Optional.of(sender));
+        when(accountRepository.findFirstByUser_EmailOrderByIdAsc("mallory@example.com")).thenReturn(Optional.of(receiver));
+        when(accountRepository.findAllByIdInOrderByIdAsc(List.of(1, 2))).thenReturn(List.of(sender, receiver));
         when(userConnectionRepository.existsByOwner_IdAndRelated_Id(101, 202)).thenReturn(false);
 
         assertThrows(IllegalArgumentException.class, () -> service.create(dto));
@@ -86,13 +88,35 @@ class TransactionServiceImplTest {
     }
 
     @Test
+    void create_verrouilleLesDeuxComptesDansOrdreCroissant() {
+        var dto = new TransactionCreateDTO(5, "bob@example.com", new BigDecimal("10.00"), "ordered lock");
+        var sender = acc(5, 101, "alice@example.com", "200.00", "EUR");
+        var receiver = acc(2, 202, "bob@example.com", "10.00", "EUR");
+
+        when(accountRepository.findById(5)).thenReturn(Optional.of(sender));
+        when(accountRepository.findFirstByUser_EmailOrderByIdAsc("bob@example.com")).thenReturn(Optional.of(receiver));
+        when(accountRepository.findAllByIdInOrderByIdAsc(List.of(5, 2))).thenReturn(List.of(receiver, sender));
+        when(userConnectionRepository.existsByOwner_IdAndRelated_Id(101, 202)).thenReturn(true);
+        when(transactionMapper.toEntity(dto)).thenReturn(baseTxForMapper(dto.amount()));
+
+        var saved = new Transaction();
+        when(transactionRepository.save(any(Transaction.class))).thenReturn(saved);
+        when(transactionMapper.toDto(saved)).thenReturn(mock(TransactionDTO.class));
+
+        service.create(dto);
+
+        verify(accountRepository).findAllByIdInOrderByIdAsc(List.of(5, 2));
+    }
+
+    @Test
     void create_soldeInsuffisant_lanceErreurEtPasDeSave() {
         var dto = new TransactionCreateDTO(1, "bob@example.com", new BigDecimal("50.00"), "x");
         var sender = acc(1, 101, "alice@example.com", "50.00", "EUR");
         var receiver = acc(2, 202, "bob@example.com", "0.00", "EUR");
 
-        when(accountRepository.findByIdForUpdate(1)).thenReturn(Optional.of(sender));
-        when(accountRepository.findFirstByUser_EmailOrderByIdAscForUpdate("bob@example.com")).thenReturn(Optional.of(receiver));
+        when(accountRepository.findById(1)).thenReturn(Optional.of(sender));
+        when(accountRepository.findFirstByUser_EmailOrderByIdAsc("bob@example.com")).thenReturn(Optional.of(receiver));
+        when(accountRepository.findAllByIdInOrderByIdAsc(List.of(1, 2))).thenReturn(List.of(sender, receiver));
         when(userConnectionRepository.existsByOwner_IdAndRelated_Id(101, 202)).thenReturn(true);
         when(transactionMapper.toEntity(dto)).thenReturn(baseTxForMapper(dto.amount()));
 
@@ -109,8 +133,9 @@ class TransactionServiceImplTest {
         var sender = acc(1, 101, "alice@example.com", "200.00", "EUR");
         var receiver = acc(2, 202, "bob@example.com", "10.00", "EUR");
 
-        when(accountRepository.findByIdForUpdate(1)).thenReturn(Optional.of(sender));
-        when(accountRepository.findFirstByUser_EmailOrderByIdAscForUpdate("bob@example.com")).thenReturn(Optional.of(receiver));
+        when(accountRepository.findById(1)).thenReturn(Optional.of(sender));
+        when(accountRepository.findFirstByUser_EmailOrderByIdAsc("bob@example.com")).thenReturn(Optional.of(receiver));
+        when(accountRepository.findAllByIdInOrderByIdAsc(List.of(1, 2))).thenReturn(List.of(sender, receiver));
         when(userConnectionRepository.existsByOwner_IdAndRelated_Id(101, 202)).thenReturn(true);
 
         Transaction base = baseTxForMapper(dto.amount());
