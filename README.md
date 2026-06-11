@@ -109,6 +109,18 @@ This fits well with a structured financial domain where consistency and explicit
 
 The relational schema is versioned with Flyway, which ensures controlled database evolution and avoids schema drift.
 
+### Accounting direction
+
+The project now includes a dedicated system fees account and a first ledger foundation through the `ledger_entries` table.
+
+The current implementation still updates account balances directly, but the ledger schema prepares a stronger accounting model where:
+
+- each financial operation can be decomposed into explicit debit and credit entries
+- balances become derivable from entries instead of being only stored state
+- fee collection can be traced as a proper accounting movement
+
+This is especially relevant for financial software because it improves auditability, explainability, and long-term consistency.
+
 ## Testing
 
 The project includes:
