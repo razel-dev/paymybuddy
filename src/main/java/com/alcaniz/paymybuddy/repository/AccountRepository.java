@@ -24,5 +24,7 @@ public interface AccountRepository extends JpaRepository<Account, Integer> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     List<Account> findAllByIdInOrderByIdAsc(List<Integer> ids);
 
+    Optional<Account> findFirstByUser_EmailAndAccountNameOrderByIdAsc(String email, String accountName);
+
     Optional<Account> findFirstByUser_EmailOrderByIdAsc(String email);
 }

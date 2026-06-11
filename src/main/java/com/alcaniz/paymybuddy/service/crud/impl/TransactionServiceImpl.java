@@ -26,6 +26,8 @@ import java.util.Optional;
 public class TransactionServiceImpl implements TransactionService {
 
     private static final BigDecimal FEE_RATE = new BigDecimal("0.005");
+    private static final String SYSTEM_USER_EMAIL = "system@paymybuddy.local";
+    private static final String SYSTEM_FEES_ACCOUNT_NAME = "PayMyBuddy Fees";
 
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
@@ -39,6 +41,7 @@ public class TransactionServiceImpl implements TransactionService {
                 .orElseThrow(() -> new IllegalArgumentException("Compte emetteur introuvable: " + dto.senderAccountId()));
 
         var receiverPreview = resolveReceiverAccountByEmail(dto.receiverEmail());
+        var systemFeesAccountPreview = resolveSystemFeesAccount();
 
         if (Objects.equals(senderPreview.getId(), receiverPreview.getId())) {
             throw new IllegalArgumentException("Le compte emetteur et le compte destinataire doivent etre differents");
@@ -46,14 +49,16 @@ public class TransactionServiceImpl implements TransactionService {
 
         var lockedAccounts = accountRepository.findAllByIdInOrderByIdAsc(List.of(
                 senderPreview.getId(),
-                receiverPreview.getId()
+                receiverPreview.getId(),
+                systemFeesAccountPreview.getId()
         ));
-        if (lockedAccounts.size() != 2) {
+        if (lockedAccounts.size() != 3) {
             throw new IllegalArgumentException("Impossible de verrouiller les comptes du transfert");
         }
 
         Account sender = accountById(lockedAccounts, senderPreview.getId());
         Account receiver = accountById(lockedAccounts, receiverPreview.getId());
+        Account systemFeesAccount = accountById(lockedAccounts, systemFeesAccountPreview.getId());
 
         if (!isAuthorizedConnection(sender, receiver)) {
             throw new IllegalArgumentException("Le destinataire doit etre une connexion autorisee");
@@ -75,9 +80,12 @@ public class TransactionServiceImpl implements TransactionService {
         sender.setBalance(senderBalance.subtract(totalDebit));
         var receiverBalance = receiver.getBalance() == null ? BigDecimal.ZERO : receiver.getBalance();
         receiver.setBalance(receiverBalance.add(amount));
+        var systemBalance = systemFeesAccount.getBalance() == null ? BigDecimal.ZERO : systemFeesAccount.getBalance();
+        systemFeesAccount.setBalance(systemBalance.add(fee));
 
         accountRepository.save(sender);
         accountRepository.save(receiver);
+        accountRepository.save(systemFeesAccount);
 
         entity.setFee(fee);
 
@@ -92,6 +100,14 @@ public class TransactionServiceImpl implements TransactionService {
 
         return accountRepository.findFirstByUser_EmailOrderByIdAsc(email)
                 .orElseThrow(() -> new IllegalArgumentException("Aucun compte trouve pour l'email: " + email));
+    }
+
+    private Account resolveSystemFeesAccount() {
+        return accountRepository.findFirstByUser_EmailAndAccountNameOrderByIdAsc(
+                        SYSTEM_USER_EMAIL,
+                        SYSTEM_FEES_ACCOUNT_NAME
+                )
+                .orElseThrow(() -> new IllegalStateException("Compte systeme des frais introuvable"));
     }
 
     private Account accountById(List<Account> accounts, Integer accountId) {

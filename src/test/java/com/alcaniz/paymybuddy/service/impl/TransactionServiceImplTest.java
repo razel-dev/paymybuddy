@@ -33,6 +33,9 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class TransactionServiceImplTest {
 
+    private static final String SYSTEM_EMAIL = "system@paymybuddy.local";
+    private static final String SYSTEM_FEES_ACCOUNT_NAME = "PayMyBuddy Fees";
+
     @Mock
     TransactionRepository transactionRepository;
 
@@ -62,6 +65,20 @@ class TransactionServiceImplTest {
         return account;
     }
 
+    private static Account systemAccount(int accountId, String balance) {
+        User user = new User();
+        user.setId(999);
+        user.setEmail(SYSTEM_EMAIL);
+
+        Account account = new Account();
+        account.setUser(user);
+        account.setAccountName(SYSTEM_FEES_ACCOUNT_NAME);
+        account.setCurrency("EUR");
+        account.setBalance(new BigDecimal(balance));
+        account.setId(accountId);
+        return account;
+    }
+
     private static Transaction baseTxForMapper(BigDecimal amount) {
         Transaction tx = new Transaction();
         tx.setSenderAccount(new Account());
@@ -76,10 +93,14 @@ class TransactionServiceImplTest {
         var dto = new TransactionCreateDTO(1, "mallory@example.com", new BigDecimal("25.00"), "x");
         var sender = acc(1, 101, "alice@example.com", "200.00", "EUR");
         var receiver = acc(2, 202, "mallory@example.com", "10.00", "EUR");
+        var feesAccount = systemAccount(9000, "0.00");
 
         when(accountRepository.findById(1)).thenReturn(Optional.of(sender));
         when(accountRepository.findFirstByUser_EmailOrderByIdAsc("mallory@example.com")).thenReturn(Optional.of(receiver));
-        when(accountRepository.findAllByIdInOrderByIdAsc(List.of(1, 2))).thenReturn(List.of(sender, receiver));
+        when(accountRepository.findFirstByUser_EmailAndAccountNameOrderByIdAsc(SYSTEM_EMAIL, SYSTEM_FEES_ACCOUNT_NAME))
+                .thenReturn(Optional.of(feesAccount));
+        when(accountRepository.findAllByIdInOrderByIdAsc(List.of(1, 2, 9000)))
+                .thenReturn(List.of(sender, receiver, feesAccount));
         when(userConnectionRepository.existsByOwner_IdAndRelated_Id(101, 202)).thenReturn(false);
 
         assertThrows(IllegalArgumentException.class, () -> service.create(dto));
@@ -88,14 +109,18 @@ class TransactionServiceImplTest {
     }
 
     @Test
-    void create_verrouilleLesDeuxComptesDansOrdreCroissant() {
+    void create_verrouilleLesTroisComptesDansOrdreCroissant() {
         var dto = new TransactionCreateDTO(5, "bob@example.com", new BigDecimal("10.00"), "ordered lock");
         var sender = acc(5, 101, "alice@example.com", "200.00", "EUR");
         var receiver = acc(2, 202, "bob@example.com", "10.00", "EUR");
+        var feesAccount = systemAccount(9000, "0.00");
 
         when(accountRepository.findById(5)).thenReturn(Optional.of(sender));
         when(accountRepository.findFirstByUser_EmailOrderByIdAsc("bob@example.com")).thenReturn(Optional.of(receiver));
-        when(accountRepository.findAllByIdInOrderByIdAsc(List.of(5, 2))).thenReturn(List.of(receiver, sender));
+        when(accountRepository.findFirstByUser_EmailAndAccountNameOrderByIdAsc(SYSTEM_EMAIL, SYSTEM_FEES_ACCOUNT_NAME))
+                .thenReturn(Optional.of(feesAccount));
+        when(accountRepository.findAllByIdInOrderByIdAsc(List.of(5, 2, 9000)))
+                .thenReturn(List.of(receiver, sender, feesAccount));
         when(userConnectionRepository.existsByOwner_IdAndRelated_Id(101, 202)).thenReturn(true);
         when(transactionMapper.toEntity(dto)).thenReturn(baseTxForMapper(dto.amount()));
 
@@ -105,7 +130,7 @@ class TransactionServiceImplTest {
 
         service.create(dto);
 
-        verify(accountRepository).findAllByIdInOrderByIdAsc(List.of(5, 2));
+        verify(accountRepository).findAllByIdInOrderByIdAsc(List.of(5, 2, 9000));
     }
 
     @Test
@@ -113,10 +138,14 @@ class TransactionServiceImplTest {
         var dto = new TransactionCreateDTO(1, "bob@example.com", new BigDecimal("50.00"), "x");
         var sender = acc(1, 101, "alice@example.com", "50.00", "EUR");
         var receiver = acc(2, 202, "bob@example.com", "0.00", "EUR");
+        var feesAccount = systemAccount(9000, "0.00");
 
         when(accountRepository.findById(1)).thenReturn(Optional.of(sender));
         when(accountRepository.findFirstByUser_EmailOrderByIdAsc("bob@example.com")).thenReturn(Optional.of(receiver));
-        when(accountRepository.findAllByIdInOrderByIdAsc(List.of(1, 2))).thenReturn(List.of(sender, receiver));
+        when(accountRepository.findFirstByUser_EmailAndAccountNameOrderByIdAsc(SYSTEM_EMAIL, SYSTEM_FEES_ACCOUNT_NAME))
+                .thenReturn(Optional.of(feesAccount));
+        when(accountRepository.findAllByIdInOrderByIdAsc(List.of(1, 2, 9000)))
+                .thenReturn(List.of(sender, receiver, feesAccount));
         when(userConnectionRepository.existsByOwner_IdAndRelated_Id(101, 202)).thenReturn(true);
         when(transactionMapper.toEntity(dto)).thenReturn(baseTxForMapper(dto.amount()));
 
@@ -125,17 +154,23 @@ class TransactionServiceImplTest {
         verify(accountRepository, never()).save(any(Account.class));
         assertEquals(new BigDecimal("50.00"), sender.getBalance());
         assertEquals(new BigDecimal("0.00"), receiver.getBalance());
+        assertEquals(new BigDecimal("0.00"), feesAccount.getBalance());
     }
 
     @Test
-    void create_happyPath_calculeFrais_metAJourSoldes_etMappeDto() {
+    void create_happyPath_crediteLesFraisSurLeCompteSystemeEtConserveLaSommeDesSoldes() {
         var dto = new TransactionCreateDTO(1, "bob@example.com", new BigDecimal("100.00"), "desc");
         var sender = acc(1, 101, "alice@example.com", "200.00", "EUR");
         var receiver = acc(2, 202, "bob@example.com", "10.00", "EUR");
+        var feesAccount = systemAccount(9000, "5.00");
+        BigDecimal initialTotal = sender.getBalance().add(receiver.getBalance()).add(feesAccount.getBalance());
 
         when(accountRepository.findById(1)).thenReturn(Optional.of(sender));
         when(accountRepository.findFirstByUser_EmailOrderByIdAsc("bob@example.com")).thenReturn(Optional.of(receiver));
-        when(accountRepository.findAllByIdInOrderByIdAsc(List.of(1, 2))).thenReturn(List.of(sender, receiver));
+        when(accountRepository.findFirstByUser_EmailAndAccountNameOrderByIdAsc(SYSTEM_EMAIL, SYSTEM_FEES_ACCOUNT_NAME))
+                .thenReturn(Optional.of(feesAccount));
+        when(accountRepository.findAllByIdInOrderByIdAsc(List.of(1, 2, 9000)))
+                .thenReturn(List.of(sender, receiver, feesAccount));
         when(userConnectionRepository.existsByOwner_IdAndRelated_Id(101, 202)).thenReturn(true);
 
         Transaction base = baseTxForMapper(dto.amount());
@@ -148,12 +183,15 @@ class TransactionServiceImplTest {
         when(transactionMapper.toDto(saved)).thenReturn(dtoOut);
 
         var res = service.create(dto);
+        BigDecimal finalTotal = sender.getBalance().add(receiver.getBalance()).add(feesAccount.getBalance());
 
         assertSame(dtoOut, res);
         org.assertj.core.api.Assertions.assertThat(sender.getBalance()).isEqualByComparingTo("99.50");
         org.assertj.core.api.Assertions.assertThat(receiver.getBalance()).isEqualByComparingTo("110.00");
+        org.assertj.core.api.Assertions.assertThat(feesAccount.getBalance()).isEqualByComparingTo("5.50");
+        org.assertj.core.api.Assertions.assertThat(finalTotal).isEqualByComparingTo(initialTotal);
 
-        verify(accountRepository, times(2)).save(any(Account.class));
+        verify(accountRepository, times(3)).save(any(Account.class));
         verify(transactionRepository).save(any(Transaction.class));
         verify(transactionMapper).toDto(saved);
     }
