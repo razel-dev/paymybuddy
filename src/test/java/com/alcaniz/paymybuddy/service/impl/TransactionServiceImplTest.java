@@ -9,11 +9,13 @@ import com.alcaniz.paymybuddy.repository.UserConnectionRepository;
 import com.alcaniz.paymybuddy.web.dto.transaction.TransactionCreateDTO;
 import com.alcaniz.paymybuddy.web.dto.transaction.TransactionDTO;
 import com.alcaniz.paymybuddy.web.mapper.TransactionMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -50,6 +52,11 @@ class TransactionServiceImplTest {
 
     @InjectMocks
     com.alcaniz.paymybuddy.service.crud.impl.TransactionServiceImpl service;
+
+    @BeforeEach
+    void setDefaults() {
+        ReflectionTestUtils.setField(service, "maxTransferAmount", new BigDecimal("1000.00"));
+    }
 
     private static Account acc(int accountId, int userId, String email, String balance, String currency) {
         User user = new User();
@@ -121,6 +128,29 @@ class TransactionServiceImplTest {
                 .thenReturn(Optional.of(feesAccount));
         when(accountRepository.findAllByIdInOrderByIdAsc(List.of(1, 2, 9000)))
                 .thenReturn(List.of(sender, receiver, feesAccount));
+
+        assertThrows(IllegalArgumentException.class, () -> service.create(dto));
+        verify(transactionRepository, never()).save(any(Transaction.class));
+        verify(accountRepository, never()).save(any(Account.class));
+    }
+
+    @Test
+    void create_rejetteMontantAuDessusDuPlafondConfigure() {
+        ReflectionTestUtils.setField(service, "maxTransferAmount", new BigDecimal("500.00"));
+
+        var dto = new TransactionCreateDTO(1, "bob@example.com", new BigDecimal("600.00"), "cap");
+        var sender = acc(1, 101, "alice@example.com", "1000.00", "EUR");
+        var receiver = acc(2, 202, "bob@example.com", "10.00", "EUR");
+        var feesAccount = systemAccount(9000, "0.00");
+
+        when(accountRepository.findById(1)).thenReturn(Optional.of(sender));
+        when(accountRepository.findFirstByUser_EmailOrderByIdAsc("bob@example.com")).thenReturn(Optional.of(receiver));
+        when(accountRepository.findFirstByUser_EmailAndAccountNameOrderByIdAsc(SYSTEM_EMAIL, SYSTEM_FEES_ACCOUNT_NAME))
+                .thenReturn(Optional.of(feesAccount));
+        when(accountRepository.findAllByIdInOrderByIdAsc(List.of(1, 2, 9000)))
+                .thenReturn(List.of(sender, receiver, feesAccount));
+        when(userConnectionRepository.existsByOwner_IdAndRelated_Id(101, 202)).thenReturn(true);
+        when(transactionMapper.toEntity(dto)).thenReturn(baseTxForMapper(dto.amount()));
 
         assertThrows(IllegalArgumentException.class, () -> service.create(dto));
         verify(transactionRepository, never()).save(any(Transaction.class));

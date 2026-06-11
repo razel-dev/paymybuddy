@@ -10,6 +10,7 @@ import com.alcaniz.paymybuddy.web.dto.transaction.TransactionDTO;
 import com.alcaniz.paymybuddy.web.mapper.TransactionMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,6 +34,9 @@ public class TransactionServiceImpl implements TransactionService {
     private final AccountRepository accountRepository;
     private final UserConnectionRepository userConnectionRepository;
     private final TransactionMapper transactionMapper;
+
+    @Value("${limits.transfer.max-amount:1000.00}")
+    private BigDecimal maxTransferAmount = new BigDecimal("1000.00");
 
     @Override
     @Transactional
@@ -73,6 +77,9 @@ public class TransactionServiceImpl implements TransactionService {
         entity.setReceiverAccount(receiver);
 
         var amount = dto.amount().setScale(2, RoundingMode.HALF_UP);
+        if (amount.compareTo(maxTransferAmount) > 0) {
+            throw new IllegalArgumentException("Le montant depasse le plafond autorise par transaction");
+        }
         var fee = calculateFee(amount);
         var totalDebit = amount.add(fee);
 
