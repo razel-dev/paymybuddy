@@ -91,6 +91,103 @@ Security responsibilities include:
 - custom login page handling
 - password encoding with BCrypt
 
+## Business rules and hardening decisions
+
+This project goes beyond CRUD. It includes a progressive hardening effort inspired by real financial constraints: authorization, accounting consistency, operational robustness, and auditability.
+
+### Authorization and transfer eligibility
+
+Peer-to-peer transfers are not accepted blindly.
+
+The backend now enforces the following business rules:
+
+- a user can only initiate a transfer from an account they actually own
+- a recipient must be an authorized connection ("buddy")
+- sender and receiver accounts must use the same currency
+
+These checks reduce classic business risks such as IDOR-style misuse, accidental transfer routing, or uncontrolled cross-currency behavior.
+
+### Balance integrity and concurrency
+
+Financial code must behave correctly under concurrent access, not only in a single-user happy path.
+
+To protect balances, the project now includes:
+
+- pessimistic locking on balance updates
+- deterministic lock ordering for transfer-related account locking
+- targeted tests documenting lost update and consistency risks
+
+This is important because a financial application must preserve balance correctness even when multiple operations hit the same accounts at nearly the same time.
+
+### Fees and accounting consistency
+
+Transfer fees are not discarded. They are credited to a dedicated system fees account.
+
+This means:
+
+- the sender is debited by `amount + fee`
+- the recipient receives `amount`
+- the fee is credited to a dedicated PayMyBuddy system account
+- the total sum of balances remains conserved
+
+This is a stronger accounting choice than letting fees "disappear", because it keeps the system financially explainable.
+
+### Ledger direction
+
+The project also includes a first `ledger_entries` foundation.
+
+The current application still updates account balances directly, but the schema now prepares a more explicit accounting direction where:
+
+- each movement can be represented as append-only debit/credit entries
+- balances become derivable from the ledger
+- reconciliation and audit become easier over time
+
+This is intentionally aligned with financial software practices, where traceability matters as much as functionality.
+
+### Regulatory-style transfer limits
+
+Several controls were added to reflect real-world payment and AML thinking:
+
+- maximum amount per transaction
+- daily transfer count limit
+- daily cumulative transfer amount limit
+
+These controls are configurable and enforced in the service layer, which makes them explicit, testable, and easy to evolve.
+
+### Idempotency and operational robustness
+
+The transfer flow now includes an idempotency key.
+
+This prevents a double submit from creating duplicate transfers in cases such as:
+
+- double click on a payment button
+- browser retry
+- accidental repeated POST
+
+In a payment context, this kind of safeguard is operationally important because duplicate execution is often more damaging than a simple validation failure.
+
+### Observability and audit trail
+
+The application now exposes controlled operational endpoints through Spring Boot Actuator:
+
+- `health`
+- `metrics`
+
+Sensitive actuator access remains protected, while health stays available for basic supervision.
+
+The project also persists an immutable financial operation audit log for successful monetary operations. Each audit record captures a business trace such as:
+
+- operation type
+- source entity
+- actor user
+- impacted account
+- counterparty account when relevant
+- amount, fee, currency
+- business description
+- timestamp
+
+This improves explainability, post-incident analysis, and long-term audit readiness.
+
 ## Persistence
 
 ### MySQL
@@ -225,14 +322,16 @@ Beyond simple CRUD, this project demonstrates:
 - financial-domain modeling
 - transactional service logic
 - secure MVC application design
+- transfer hardening with explicit business controls
+- accounting consistency and fee traceability
+- immutable financial audit logging
+- operational visibility with health and metrics endpoints
 - schema versioning discipline
 - realistic database testing with Testcontainers
 
 ## Possible next improvements
 
 - add Docker Compose for the full local runtime stack
-- strengthen observability with Actuator and metrics
-- document the core business rules more explicitly in the README
 - add CI if the repository becomes a main portfolio project
 
 ## Author
