@@ -251,6 +251,34 @@ This is a strong point of the repository because it validates persistence behavi
 - Docker running locally for integration tests
 - MySQL locally, or MySQL in Docker
 
+### Docker Compose runtime
+
+The repository now includes a simple local runtime stack with:
+
+- the Spring Boot application
+- a MySQL database
+
+Start the full stack with:
+
+```bash
+docker compose up --build
+```
+
+Then access:
+
+- application: `http://localhost:8080`
+- actuator health: `http://localhost:8080/actuator/health`
+- swagger UI: `http://localhost:8080/swagger-ui/index.html`
+
+Useful commands:
+
+```bash
+docker compose down
+docker compose down -v
+```
+
+The named volume `mysql-data` keeps database state between restarts. Use `down -v` only if you want a clean database reset.
+
 ### Application startup
 
 ```bash
@@ -331,7 +359,6 @@ Beyond simple CRUD, this project demonstrates:
 
 ## Possible next improvements
 
-- add Docker Compose for the full local runtime stack
 - add CI if the repository becomes a main portfolio project
 
 ## Author
