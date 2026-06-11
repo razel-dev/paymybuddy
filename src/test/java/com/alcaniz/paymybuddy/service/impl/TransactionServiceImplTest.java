@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -56,6 +57,8 @@ class TransactionServiceImplTest {
     @BeforeEach
     void setDefaults() {
         ReflectionTestUtils.setField(service, "maxTransferAmount", new BigDecimal("1000.00"));
+        ReflectionTestUtils.setField(service, "dailyMaxTransferCount", 10);
+        ReflectionTestUtils.setField(service, "dailyMaxTransferAmount", new BigDecimal("3000.00"));
     }
 
     private static Account acc(int accountId, int userId, String email, String balance, String currency) {
@@ -93,6 +96,13 @@ class TransactionServiceImplTest {
         tx.setAmount(amount);
         tx.setFee(BigDecimal.ZERO);
         return tx;
+    }
+
+    private void stubHappyDailyLimits() {
+        when(transactionRepository.countBySenderAccount_User_IdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(anyInt(), any(), any()))
+                .thenReturn(0L);
+        when(transactionRepository.sumAmountBySenderUserIdAndCreatedAtBetween(anyInt(), any(), any()))
+                .thenReturn(BigDecimal.ZERO);
     }
 
     @Test
@@ -158,6 +168,58 @@ class TransactionServiceImplTest {
     }
 
     @Test
+    void create_rejetteNombreMaxDeTransfertsJournalierAtteint() {
+        ReflectionTestUtils.setField(service, "dailyMaxTransferCount", 3);
+
+        var dto = new TransactionCreateDTO(1, "bob@example.com", new BigDecimal("25.00"), "aml-count");
+        var sender = acc(1, 101, "alice@example.com", "1000.00", "EUR");
+        var receiver = acc(2, 202, "bob@example.com", "10.00", "EUR");
+        var feesAccount = systemAccount(9000, "0.00");
+
+        when(accountRepository.findById(1)).thenReturn(Optional.of(sender));
+        when(accountRepository.findFirstByUser_EmailOrderByIdAsc("bob@example.com")).thenReturn(Optional.of(receiver));
+        when(accountRepository.findFirstByUser_EmailAndAccountNameOrderByIdAsc(SYSTEM_EMAIL, SYSTEM_FEES_ACCOUNT_NAME))
+                .thenReturn(Optional.of(feesAccount));
+        when(accountRepository.findAllByIdInOrderByIdAsc(List.of(1, 2, 9000)))
+                .thenReturn(List.of(sender, receiver, feesAccount));
+        when(userConnectionRepository.existsByOwner_IdAndRelated_Id(101, 202)).thenReturn(true);
+        when(transactionMapper.toEntity(dto)).thenReturn(baseTxForMapper(dto.amount()));
+        when(transactionRepository.countBySenderAccount_User_IdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(anyInt(), any(), any()))
+                .thenReturn(3L);
+
+        assertThrows(IllegalArgumentException.class, () -> service.create(dto));
+        verify(transactionRepository, never()).save(any(Transaction.class));
+        verify(accountRepository, never()).save(any(Account.class));
+    }
+
+    @Test
+    void create_rejetteMontantCumuleJournalierAuDessusDuPlafond() {
+        ReflectionTestUtils.setField(service, "dailyMaxTransferAmount", new BigDecimal("700.00"));
+
+        var dto = new TransactionCreateDTO(1, "bob@example.com", new BigDecimal("250.00"), "aml-amount");
+        var sender = acc(1, 101, "alice@example.com", "1000.00", "EUR");
+        var receiver = acc(2, 202, "bob@example.com", "10.00", "EUR");
+        var feesAccount = systemAccount(9000, "0.00");
+
+        when(accountRepository.findById(1)).thenReturn(Optional.of(sender));
+        when(accountRepository.findFirstByUser_EmailOrderByIdAsc("bob@example.com")).thenReturn(Optional.of(receiver));
+        when(accountRepository.findFirstByUser_EmailAndAccountNameOrderByIdAsc(SYSTEM_EMAIL, SYSTEM_FEES_ACCOUNT_NAME))
+                .thenReturn(Optional.of(feesAccount));
+        when(accountRepository.findAllByIdInOrderByIdAsc(List.of(1, 2, 9000)))
+                .thenReturn(List.of(sender, receiver, feesAccount));
+        when(userConnectionRepository.existsByOwner_IdAndRelated_Id(101, 202)).thenReturn(true);
+        when(transactionMapper.toEntity(dto)).thenReturn(baseTxForMapper(dto.amount()));
+        when(transactionRepository.countBySenderAccount_User_IdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(anyInt(), any(), any()))
+                .thenReturn(2L);
+        when(transactionRepository.sumAmountBySenderUserIdAndCreatedAtBetween(anyInt(), any(), any()))
+                .thenReturn(new BigDecimal("500.00"));
+
+        assertThrows(IllegalArgumentException.class, () -> service.create(dto));
+        verify(transactionRepository, never()).save(any(Transaction.class));
+        verify(accountRepository, never()).save(any(Account.class));
+    }
+
+    @Test
     void create_verrouilleLesTroisComptesDansOrdreCroissant() {
         var dto = new TransactionCreateDTO(5, "bob@example.com", new BigDecimal("10.00"), "ordered lock");
         var sender = acc(5, 101, "alice@example.com", "200.00", "EUR");
@@ -172,6 +234,7 @@ class TransactionServiceImplTest {
                 .thenReturn(List.of(receiver, sender, feesAccount));
         when(userConnectionRepository.existsByOwner_IdAndRelated_Id(101, 202)).thenReturn(true);
         when(transactionMapper.toEntity(dto)).thenReturn(baseTxForMapper(dto.amount()));
+        stubHappyDailyLimits();
 
         var saved = new Transaction();
         when(transactionRepository.save(any(Transaction.class))).thenReturn(saved);
@@ -197,6 +260,7 @@ class TransactionServiceImplTest {
                 .thenReturn(List.of(sender, receiver, feesAccount));
         when(userConnectionRepository.existsByOwner_IdAndRelated_Id(101, 202)).thenReturn(true);
         when(transactionMapper.toEntity(dto)).thenReturn(baseTxForMapper(dto.amount()));
+        stubHappyDailyLimits();
 
         assertThrows(IllegalArgumentException.class, () -> service.create(dto));
         verify(transactionRepository, never()).save(any(Transaction.class));
@@ -221,6 +285,7 @@ class TransactionServiceImplTest {
         when(accountRepository.findAllByIdInOrderByIdAsc(List.of(1, 2, 9000)))
                 .thenReturn(List.of(sender, receiver, feesAccount));
         when(userConnectionRepository.existsByOwner_IdAndRelated_Id(101, 202)).thenReturn(true);
+        stubHappyDailyLimits();
 
         Transaction base = baseTxForMapper(dto.amount());
         when(transactionMapper.toEntity(dto)).thenReturn(base);

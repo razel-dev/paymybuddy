@@ -16,6 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -37,6 +40,12 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Value("${limits.transfer.max-amount:1000.00}")
     private BigDecimal maxTransferAmount = new BigDecimal("1000.00");
+
+    @Value("${limits.transfer.daily-max-count:10}")
+    private int dailyMaxTransferCount = 10;
+
+    @Value("${limits.transfer.daily-max-amount:3000.00}")
+    private BigDecimal dailyMaxTransferAmount = new BigDecimal("3000.00");
 
     @Override
     @Transactional
@@ -80,6 +89,7 @@ public class TransactionServiceImpl implements TransactionService {
         if (amount.compareTo(maxTransferAmount) > 0) {
             throw new IllegalArgumentException("Le montant depasse le plafond autorise par transaction");
         }
+        enforceDailyLimits(sender, amount);
         var fee = calculateFee(amount);
         var totalDebit = amount.add(fee);
 
@@ -139,6 +149,32 @@ public class TransactionServiceImpl implements TransactionService {
                 sender.getUser().getId(),
                 receiver.getUser().getId()
         );
+    }
+
+    private void enforceDailyLimits(Account sender, BigDecimal amount) {
+        if (sender.getUser() == null || sender.getUser().getId() == null) {
+            throw new IllegalArgumentException("Utilisateur emetteur introuvable");
+        }
+
+        Integer senderUserId = sender.getUser().getId();
+        Instant dayStart = LocalDate.now(ZoneOffset.UTC).atStartOfDay().toInstant(ZoneOffset.UTC);
+        Instant dayEnd = dayStart.plusSeconds(24 * 60 * 60);
+
+        long todayTransferCount = transactionRepository
+                .countBySenderAccount_User_IdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+                        senderUserId,
+                        dayStart,
+                        dayEnd
+                );
+        if (todayTransferCount >= dailyMaxTransferCount) {
+            throw new IllegalArgumentException("Le nombre maximum de transferts journaliers est atteint");
+        }
+
+        BigDecimal todayTransferredAmount = transactionRepository
+                .sumAmountBySenderUserIdAndCreatedAtBetween(senderUserId, dayStart, dayEnd);
+        if (todayTransferredAmount.add(amount).compareTo(dailyMaxTransferAmount) > 0) {
+            throw new IllegalArgumentException("Le montant cumule journalier autorise est depasse");
+        }
     }
 
     @Transactional(readOnly = true)
