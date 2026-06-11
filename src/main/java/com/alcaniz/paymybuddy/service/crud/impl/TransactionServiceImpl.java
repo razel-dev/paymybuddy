@@ -50,6 +50,15 @@ public class TransactionServiceImpl implements TransactionService {
     @Override
     @Transactional
     public TransactionDTO create(TransactionCreateDTO dto) {
+        if (dto.idempotencyKey() == null || dto.idempotencyKey().isBlank()) {
+            throw new IllegalArgumentException("La cle d'idempotence est requise");
+        }
+
+        var existingTransaction = transactionRepository.findByIdempotencyKey(dto.idempotencyKey());
+        if (existingTransaction.isPresent()) {
+            return transactionMapper.toDto(existingTransaction.orElseThrow());
+        }
+
         var senderPreview = accountRepository.findById(dto.senderAccountId())
                 .orElseThrow(() -> new IllegalArgumentException("Compte emetteur introuvable: " + dto.senderAccountId()));
 

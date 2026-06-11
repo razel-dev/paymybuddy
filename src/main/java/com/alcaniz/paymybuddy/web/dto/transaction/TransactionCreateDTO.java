@@ -23,6 +23,10 @@ public record TransactionCreateDTO(
         @DecimalMin("0.01")
         BigDecimal amount,
 
+        @NotBlank
+        @Size(max = 64)
+        String idempotencyKey,
+
         @Size(max = 255)
         String description
 ) {

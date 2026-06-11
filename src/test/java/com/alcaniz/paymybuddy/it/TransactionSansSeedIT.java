@@ -73,7 +73,13 @@ class TransactionSansSeedIT {
         buddyLink.setRelated(bob);
         userConnectionRepository.save(buddyLink);
 
-        var dto = new TransactionCreateDTO(accAlice.getId(), bob.getEmail(), new BigDecimal("100.00"), "test");
+        var dto = new TransactionCreateDTO(
+                accAlice.getId(),
+                bob.getEmail(),
+                new BigDecimal("100.00"),
+                "it-no-seed-1",
+                "test"
+        );
         var result = transactionService.create(dto);
 
         assertThat(result.fee()).isEqualByComparingTo("0.50");

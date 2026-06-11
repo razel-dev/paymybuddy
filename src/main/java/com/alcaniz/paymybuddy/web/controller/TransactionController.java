@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import java.math.BigDecimal;
 import java.security.Principal;
 import java.util.List;
+import java.util.UUID;
 
 @Controller
 @RequiredArgsConstructor
@@ -35,7 +36,7 @@ public class TransactionController {
         Integer userId = currentUserId(principal);
         List<AccountDTO> accounts = accountService.getAllForUser(userId);
         model.addAttribute("accounts", accounts);
-        model.addAttribute("transferForm", new TransactionCreateDTO(null, null, new BigDecimal("1.00"), ""));
+        model.addAttribute("transferForm", newTransferForm());
         model.addAttribute("history", accounts.isEmpty() ? List.of()
                 : transactionService.getHistoryForAccount(accounts.getFirst().id()));
         return "transfer";
@@ -97,5 +98,9 @@ public class TransactionController {
         String email = principal.getName();
         return userService.getByEmail(email).map(UserDTO::id)
                 .orElseThrow(() -> new IllegalStateException("Utilisateur non trouve"));
+    }
+
+    private TransactionCreateDTO newTransferForm() {
+        return new TransactionCreateDTO(null, null, new BigDecimal("1.00"), UUID.randomUUID().toString(), "");
     }
 }

@@ -29,6 +29,7 @@
                     <label for="desc" class="form-label">Description</label>
                     <input id="desc" class="form-control" th:field="*{description}" placeholder="Description">
                 </div>
+                <input type="hidden" th:field="*{idempotencyKey}">
                 <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
                 <div class="col-12">
                     <button type="submit" class="btn btn-primary">Payer</button>

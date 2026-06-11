@@ -36,6 +36,7 @@ class TransactionAvecSeedIT {
                 aliceAccount.getId(),
                 bobAccount.getUser().getEmail(),
                 new BigDecimal("10.00"),
+                "it-seed-1",
                 "seed run"
         );
         var result = transactionService.create(dto);

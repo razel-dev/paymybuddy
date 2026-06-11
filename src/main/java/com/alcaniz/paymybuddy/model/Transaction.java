@@ -37,6 +37,9 @@ public class Transaction {
     @Column(name = "fee", nullable = false, precision = 10, scale = 2)
     private BigDecimal fee;
 
+    @Column(name = "idempotency_key", nullable = false, length = 64, unique = true)
+    private String idempotencyKey;
+
     @Column(name = "created_at", insertable = false, updatable = false)
     private Instant createdAt;
 

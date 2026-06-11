@@ -48,7 +48,13 @@ class TransactionControllerTest {
     void submit_shouldRejectTransferWhenSenderAccountDoesNotBelongToAuthenticatedUser() {
         var authenticatedUser = new UserDTO(1, "alice", "alice@example.com", Instant.now());
         var ownedAccount = new AccountDTO(10, 1, "Alice main account", "EUR", new BigDecimal("250.00"), Instant.now());
-        var forgedForm = new TransactionCreateDTO(999, "bob@example.com", new BigDecimal("25.00"), "forged transfer");
+        var forgedForm = new TransactionCreateDTO(
+                999,
+                "bob@example.com",
+                new BigDecimal("25.00"),
+                "idem-forged-1",
+                "forged transfer"
+        );
         BindingResult bindingResult = new BeanPropertyBindingResult(forgedForm, "transferForm");
         var model = new ConcurrentModel();
         Principal principal = () -> "alice@example.com";
