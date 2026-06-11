@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -29,6 +30,7 @@ class BankTransferServiceImplTest {
     @Mock BankTransferRepository bankTransferRepository;
     @Mock AccountRepository accountRepository;
     @Mock BankTransferMapper bankTransferMapper;
+    @Mock ApplicationEventPublisher applicationEventPublisher;
 
     @InjectMocks
     BankTransferServiceImpl service;
@@ -84,6 +86,7 @@ class BankTransferServiceImplTest {
         verify(accountRepository).save(acc);
         verify(bankTransferRepository).save(any(BankTransfer.class));
         verify(bankTransferMapper).toDto(any(BankTransfer.class));
+        verify(applicationEventPublisher).publishEvent(any(Object.class));
     }
 
     @Test

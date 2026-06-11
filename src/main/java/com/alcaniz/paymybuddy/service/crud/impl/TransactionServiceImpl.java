@@ -1,6 +1,9 @@
 package com.alcaniz.paymybuddy.service.crud.impl;
 
+import com.alcaniz.paymybuddy.audit.FinancialOperationRecordedEvent;
 import com.alcaniz.paymybuddy.model.Account;
+import com.alcaniz.paymybuddy.model.FinancialOperationSourceType;
+import com.alcaniz.paymybuddy.model.FinancialOperationType;
 import com.alcaniz.paymybuddy.repository.AccountRepository;
 import com.alcaniz.paymybuddy.repository.TransactionRepository;
 import com.alcaniz.paymybuddy.repository.UserConnectionRepository;
@@ -11,6 +14,7 @@ import com.alcaniz.paymybuddy.web.mapper.TransactionMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +41,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final AccountRepository accountRepository;
     private final UserConnectionRepository userConnectionRepository;
     private final TransactionMapper transactionMapper;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Value("${limits.transfer.max-amount:1000.00}")
     private BigDecimal maxTransferAmount = new BigDecimal("1000.00");
@@ -120,6 +125,19 @@ public class TransactionServiceImpl implements TransactionService {
         entity.setFee(fee);
 
         var saved = transactionRepository.save(entity);
+        applicationEventPublisher.publishEvent(new FinancialOperationRecordedEvent(
+                FinancialOperationType.P2P_TRANSFER,
+                FinancialOperationSourceType.TRANSACTION,
+                saved.getId(),
+                sender.getUser().getId(),
+                sender.getId(),
+                receiver.getId(),
+                amount,
+                fee,
+                sender.getCurrency(),
+                saved.getDescription(),
+                Instant.now()
+        ));
         return transactionMapper.toDto(saved);
     }
 
