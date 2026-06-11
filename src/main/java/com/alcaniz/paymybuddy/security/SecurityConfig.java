@@ -1,5 +1,6 @@
 package com.alcaniz.paymybuddy.security;
 
+import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -16,11 +17,13 @@ public class SecurityConfig {
         http
 
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers(EndpointRequest.to("health")).permitAll()
+                .requestMatchers(EndpointRequest.toAnyEndpoint()).authenticated()
                 .requestMatchers(
                     "/login",
                     "/register",
                     "/css/**",
-                        "/logout"
+                    "/logout"
 
                 ).permitAll()
                 .anyRequest().authenticated()
