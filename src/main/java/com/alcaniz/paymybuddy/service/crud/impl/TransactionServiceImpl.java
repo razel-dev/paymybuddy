@@ -60,6 +60,10 @@ public class TransactionServiceImpl implements TransactionService {
         Account receiver = accountById(lockedAccounts, receiverPreview.getId());
         Account systemFeesAccount = accountById(lockedAccounts, systemFeesAccountPreview.getId());
 
+        if (!Objects.equals(sender.getCurrency(), receiver.getCurrency())) {
+            throw new IllegalArgumentException("Les transferts entre devises differentes ne sont pas autorises");
+        }
+
         if (!isAuthorizedConnection(sender, receiver)) {
             throw new IllegalArgumentException("Le destinataire doit etre une connexion autorisee");
         }

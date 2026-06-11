@@ -109,6 +109,25 @@ class TransactionServiceImplTest {
     }
 
     @Test
+    void create_rejetteTransfertInterDevises() {
+        var dto = new TransactionCreateDTO(1, "bob@example.com", new BigDecimal("25.00"), "fx");
+        var sender = acc(1, 101, "alice@example.com", "200.00", "EUR");
+        var receiver = acc(2, 202, "bob@example.com", "10.00", "USD");
+        var feesAccount = systemAccount(9000, "0.00");
+
+        when(accountRepository.findById(1)).thenReturn(Optional.of(sender));
+        when(accountRepository.findFirstByUser_EmailOrderByIdAsc("bob@example.com")).thenReturn(Optional.of(receiver));
+        when(accountRepository.findFirstByUser_EmailAndAccountNameOrderByIdAsc(SYSTEM_EMAIL, SYSTEM_FEES_ACCOUNT_NAME))
+                .thenReturn(Optional.of(feesAccount));
+        when(accountRepository.findAllByIdInOrderByIdAsc(List.of(1, 2, 9000)))
+                .thenReturn(List.of(sender, receiver, feesAccount));
+
+        assertThrows(IllegalArgumentException.class, () -> service.create(dto));
+        verify(transactionRepository, never()).save(any(Transaction.class));
+        verify(accountRepository, never()).save(any(Account.class));
+    }
+
+    @Test
     void create_verrouilleLesTroisComptesDansOrdreCroissant() {
         var dto = new TransactionCreateDTO(5, "bob@example.com", new BigDecimal("10.00"), "ordered lock");
         var sender = acc(5, 101, "alice@example.com", "200.00", "EUR");
